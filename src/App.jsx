@@ -75,7 +75,7 @@ function formatDateFull(dateStr) {
 
 function dateKey(d) {
   const dt = d instanceof Date ? d : new Date(d);
-  return dt.toISOString().slice(0, 10);
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
 }
 
 function today() {
