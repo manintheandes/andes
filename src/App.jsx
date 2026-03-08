@@ -212,7 +212,7 @@ function StaticMap({ polyline, token, width = 400, height = 200 }) {
 }
 
 function ActivityCard({ activity, token, onClick }) {
-  const hasGPS = !!activity.summary_polyline;
+  const hasGPS = !!activity.summary_polyline && (activity.distance || 0) > 160;
   const hasHR = !!activity.average_heartrate;
   const isRide = activity.type === "Ride" || activity.sport_type === "Ride";
   const isYoga = activity.type === "Yoga" || activity.sport_type === "Yoga";
@@ -1073,7 +1073,12 @@ export default function App() {
     const summary = {
       id,
       source: "andes",
-      name: `${recording.type === "Run" && recording.elevGain > 50 ? "Trail " : ""}${recording.type}`,
+      name: (() => {
+        const hour = new Date(recording.startTime).getHours();
+        const prefix = hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
+        const trail = recording.type === "Run" && recording.elevGain > 50 ? "Trail " : "";
+        return `${prefix} ${trail}${recording.type}`;
+      })(),
       type: recording.type,
       sport_type: recording.type,
       start_date_local: new Date(recording.startTime).toISOString(),
