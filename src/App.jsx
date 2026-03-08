@@ -207,7 +207,7 @@ function StatBox({ value, label, large }) {
 function StaticMap({ polyline, token, width = 400, height = 200 }) {
   if (!polyline || !token) return <div className="rounded-lg" style={{ background: "#1a1a1a", height }} />;
   const encoded = encodeURIComponent(polyline);
-  const src = `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/path-2+5ae6de-0.8(${encoded})/auto/${width}x${height}@2x?access_token=${token}&padding=30`;
+  const src = `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/path-2+5ae6de-0.8(${encoded})/auto/${width}x${height}@2x?access_token=${token}&padding=30&logo=false&attribution=false`;
   return <img src={src} alt="" className="w-full rounded-lg" style={{ height }} loading="lazy" />;
 }
 
@@ -1256,7 +1256,7 @@ export default function App() {
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
         <span className="text-sm font-semibold tracking-widest" style={{ color: "#e8e8e8" }}>
-          ANDES
+          Andes
         </span>
         <div className="flex gap-2">
           <button

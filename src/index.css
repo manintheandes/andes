@@ -26,6 +26,9 @@ body {
 
 /* Mapbox overrides for dark theme */
 .mapboxgl-ctrl-attrib,
-.mapboxgl-ctrl-logo {
+.mapboxgl-ctrl-logo,
+.mapboxgl-ctrl-bottom-left,
+.mapboxgl-ctrl-bottom-right,
+.mapboxgl-ctrl {
   display: none !important;
 }
