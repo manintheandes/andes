@@ -325,7 +325,7 @@ function BodyState({ daily }) {
       <div className="text-xs font-medium tracking-widest mb-3" style={{ color: "#666" }}>
         BODY
       </div>
-      <div className="flex gap-6 mb-4">
+      <div className="flex flex-wrap gap-x-6 gap-y-1 mb-4">
         {sleep_score && (
           <div>
             <span className="text-sm" style={{ color: "#666" }}>Sleep </span>
@@ -342,6 +342,12 @@ function BodyState({ daily }) {
           <div>
             <span className="text-sm" style={{ color: "#666" }}>HRV </span>
             <span className="font-semibold tabular-nums" style={{ color: "#e8e8e8" }}>{hrv}</span>
+          </div>
+        )}
+        {rhr && (
+          <div>
+            <span className="text-sm" style={{ color: "#666" }}>RHR </span>
+            <span className="font-semibold tabular-nums" style={{ color: "#e8e8e8" }}>{rhr}</span>
           </div>
         )}
       </div>
@@ -1012,23 +1018,25 @@ export default function App() {
         const acts = await kvGet("an_activities");
         if (acts) setActivities(acts);
 
-        // Load today's body data
+        // Load today's body data (fetch yesterday too, since sleep sessions are keyed to the night they started)
         if (s?.ouraToken) {
           const d = today();
-          const oura = await fetchOura(s.ouraToken, d, d);
-          if (oura.daily_sleep?.length || oura.daily_readiness?.length) {
-            const sleep = oura.daily_sleep[0];
-            const readiness = oura.daily_readiness[0];
-            const session = oura.sleep?.[0];
+          const yesterday = daysAgo(1);
+          const oura = await fetchOura(s.ouraToken, yesterday, d);
+          const todaySleep = oura.daily_sleep?.find((x) => x.day === d);
+          const todayReadiness = oura.daily_readiness?.find((x) => x.day === d);
+          // Sleep session: prefer today's, fall back to yesterday's (last night's sleep)
+          const session = oura.sleep?.find((x) => x.day === d) || oura.sleep?.find((x) => x.day === yesterday);
+          if (todaySleep || todayReadiness || session) {
             setDaily((prev) => ({
               ...prev,
               [d]: {
-                sleep_score: sleep?.score,
-                readiness_score: readiness?.score,
+                sleep_score: todaySleep?.score,
+                readiness_score: todayReadiness?.score,
                 hrv: session?.average_hrv ? Math.round(session.average_hrv) : null,
                 rhr: session?.average_heart_rate ? Math.round(session.average_heart_rate) : null,
                 total_sleep: session?.total_sleep_duration,
-                contributors: readiness?.contributors,
+                contributors: todayReadiness?.contributors,
               },
             }));
           }
@@ -1381,17 +1389,18 @@ export default function App() {
       } catch {
         setDetailData(null);
       }
-      // Load body data for that day
+      // Load body data for that day (include day before for sleep session)
       const activity = activities[id];
       if (activity && settings?.ouraToken) {
         const d = dateKey(activity.start_date_local);
         if (!daily[d]) {
           try {
-            const oura = await fetchOura(settings.ouraToken, d, d);
-            const sleep = oura.daily_sleep?.[0];
-            const readiness = oura.daily_readiness?.[0];
-            const session = oura.sleep?.[0];
-            if (sleep || readiness) {
+            const prevDay = dateKey(new Date(new Date(d + "T12:00:00").getTime() - 86400000));
+            const oura = await fetchOura(settings.ouraToken, prevDay, d);
+            const sleep = oura.daily_sleep?.find((x) => x.day === d);
+            const readiness = oura.daily_readiness?.find((x) => x.day === d);
+            const session = oura.sleep?.find((x) => x.day === d) || oura.sleep?.find((x) => x.day === prevDay);
+            if (sleep || readiness || session) {
               setDaily((prev) => ({
                 ...prev,
                 [d]: {
