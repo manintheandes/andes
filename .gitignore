@@ -1,8 +1,10 @@
 node_modules/
 dist/
-ios/
+ios/App/App/public/
+ios/App/Pods/
 android/
 .env
 .env.local
 *.log
 .DS_Store
+.vercel

@@ -2,22 +2,29 @@
   "name": "andes",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@capacitor/core": "^7.2.0",
-    "@capacitor/ios": "^7.2.0",
+    "@capacitor-community/background-geolocation": "^1.2.26",
+    "@capacitor-community/bluetooth-le": "^8.1.2",
+    "@capacitor-community/keep-awake": "^8.0.0",
+    "@capacitor/core": "^8.2.0",
+    "@capacitor/ios": "^8.2.0",
+    "@capgo/capacitor-health": "^8.2.17",
     "mapbox-gl": "^3.12.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.2.0",
     "@tailwindcss/vite": "^4.1.18",
     "@vitejs/plugin-react": "^5.1.4",
     "tailwindcss": "^4.1.18",
+    "typescript": "^5.9.3",
     "vite": "^7.3.1"
   }
 }
