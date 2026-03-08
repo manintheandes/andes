@@ -15,7 +15,9 @@ const STATS_CONFIG = {
   Yoga: { row1: ["time"], row2: ["calories"] },
 };
 
-const API_BASE = "";
+const API_BASE = typeof window !== "undefined" && window.location.protocol === "capacitor:"
+  ? "https://andes-black.vercel.app"
+  : "";
 
 // ─── Utilities ───────────────────────────────────────────────────────────────
 

@@ -1,4 +1,9 @@
 export default async function handler(req, res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-oura-token");
+  if (req.method === "OPTIONS") return res.status(200).end();
+
   const token = req.headers["x-oura-token"];
   if (!token) return res.status(401).json({ error: "Oura token required" });
 

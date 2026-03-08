@@ -1,6 +1,9 @@
-// Proxies Strava API: refreshes token then fetches activities for a date range
-// Used for incremental sync (recent activities)
 export default async function handler(req, res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-strava-client-id, x-strava-client-secret, x-strava-refresh-token");
+  if (req.method === "OPTIONS") return res.status(200).end();
+
   const clientId = req.headers["x-strava-client-id"];
   const clientSecret = req.headers["x-strava-client-secret"];
   const refreshToken = req.headers["x-strava-refresh-token"];

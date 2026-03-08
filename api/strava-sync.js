@@ -1,5 +1,9 @@
-// One-time Strava backfill: fetches ALL activities (paginated) for import
 export default async function handler(req, res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-strava-client-id, x-strava-client-secret, x-strava-refresh-token");
+  if (req.method === "OPTIONS") return res.status(200).end();
+
   const clientId = req.headers["x-strava-client-id"];
   const clientSecret = req.headers["x-strava-client-secret"];
   const refreshToken = req.headers["x-strava-refresh-token"];
@@ -9,7 +13,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Refresh token
     const tokenResp = await fetch("https://www.strava.com/oauth/token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -25,7 +28,6 @@ export default async function handler(req, res) {
     const tokenData = await tokenResp.json();
     const accessToken = tokenData.access_token;
 
-    // Paginated fetch of all activities
     let allActivities = [];
     let page = 1;
     const perPage = 200;
@@ -42,12 +44,9 @@ export default async function handler(req, res) {
 
       allActivities = allActivities.concat(batch);
       page++;
-
-      // Safety: max 50 pages (10,000 activities)
       if (page > 50) break;
     }
 
-    // Map to our format
     const mapped = {};
     for (const a of allActivities) {
       mapped[String(a.id)] = {
