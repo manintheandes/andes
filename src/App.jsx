@@ -1428,68 +1428,37 @@ function HomeScreen({ onNavigate, todaysActivities, daily, activities, settings,
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
     >
-      {/* Hero section: alpaca icon with gradient fade */}
-      <div style={{ position: "relative", width: "100%", paddingTop: "50%", overflow: "hidden" }}>
-        <img
-          src="/icon-512.png"
-          alt=""
-          style={{
-            position: "absolute",
-            top: 0,
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: "60%",
-            maxWidth: "280px",
-            opacity: 0.12,
-            filter: "grayscale(0.5)",
-            pointerEvents: "none",
-          }}
-        />
-        {/* Gradient fade */}
-        <div
-          style={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: "60%",
-            background: "linear-gradient(to bottom, transparent, var(--color-bg))",
-            pointerEvents: "none",
-          }}
-        />
-        {/* Settings gear in top right */}
-        <button
-          onClick={() => onNavigate("settings")}
-          style={{
-            position: "absolute",
-            top: "16px",
-            right: "16px",
-            color: "var(--color-text-dim)",
-            minWidth: "44px",
-            minHeight: "44px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 2,
-          }}
-          className="text-label-lg"
-        >
-          <svg width="18" height="18" viewBox="0 0 40 40" fill="none">
-            <circle cx="20" cy="20" r="6" stroke="currentColor" strokeWidth="0.6" fill="none"/>
-            <path d="M 20,4 C 20,8 20,12 20,14" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" fill="none"/>
-            <path d="M 20,26 C 20,28 20,32 20,36" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" fill="none"/>
-            <path d="M 4,20 C 8,20 12,20 14,20" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" fill="none"/>
-            <path d="M 26,20 C 28,20 32,20 36,20" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" fill="none"/>
-            <path d="M 8.6,8.6 C 10.4,10.4 12,12 13.2,13.2" stroke="currentColor" strokeWidth="0.4" strokeLinecap="round" fill="none" opacity="0.5"/>
-            <path d="M 26.8,26.8 C 28.6,28.6 30.2,30.2 31.4,31.4" stroke="currentColor" strokeWidth="0.4" strokeLinecap="round" fill="none" opacity="0.5"/>
-            <path d="M 31.4,8.6 C 29.6,10.4 28,12 26.8,13.2" stroke="currentColor" strokeWidth="0.4" strokeLinecap="round" fill="none" opacity="0.5"/>
-            <path d="M 13.2,26.8 C 11.4,28.6 9.8,30.2 8.6,31.4" stroke="currentColor" strokeWidth="0.4" strokeLinecap="round" fill="none" opacity="0.5"/>
-          </svg>
-        </button>
+      {/* Top bar with settings gear */}
+      <div style={{ position: "relative", padding: "16px 16px 0" }}>
+        <div className="flex justify-end">
+          <button
+            onClick={() => onNavigate("settings")}
+            style={{
+              color: "var(--color-text-dim)",
+              minWidth: "44px",
+              minHeight: "44px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 40 40" fill="none">
+              <circle cx="20" cy="20" r="6" stroke="currentColor" strokeWidth="0.6" fill="none"/>
+              <path d="M 20,4 C 20,8 20,12 20,14" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" fill="none"/>
+              <path d="M 20,26 C 20,28 20,32 20,36" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" fill="none"/>
+              <path d="M 4,20 C 8,20 12,20 14,20" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" fill="none"/>
+              <path d="M 26,20 C 28,20 32,20 36,20" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" fill="none"/>
+              <path d="M 8.6,8.6 C 10.4,10.4 12,12 13.2,13.2" stroke="currentColor" strokeWidth="0.4" strokeLinecap="round" fill="none" opacity="0.5"/>
+              <path d="M 26.8,26.8 C 28.6,28.6 30.2,30.2 31.4,31.4" stroke="currentColor" strokeWidth="0.4" strokeLinecap="round" fill="none" opacity="0.5"/>
+              <path d="M 31.4,8.6 C 29.6,10.4 28,12 26.8,13.2" stroke="currentColor" strokeWidth="0.4" strokeLinecap="round" fill="none" opacity="0.5"/>
+              <path d="M 13.2,26.8 C 11.4,28.6 9.8,30.2 8.6,31.4" stroke="currentColor" strokeWidth="0.4" strokeLinecap="round" fill="none" opacity="0.5"/>
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* 2x2 Grid with topo dividers */}
-      <div style={{ position: "relative", padding: "0 20px", marginTop: "-24px" }}>
+      <div style={{ position: "relative", padding: "0 20px" }}>
         <div
           style={{
             position: "relative",
