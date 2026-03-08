@@ -215,6 +215,56 @@ async function fetchOura(token, start, end) {
   }
 }
 
+// ─── Topo Visual Components ─────────────────────────────────────────────────
+
+function TopoGridDividers() {
+  return (
+    <svg viewBox="0 0 280 300" preserveAspectRatio="none" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
+      <path d="M 0,148 C 45,140 95,158 140,146 C 185,134 235,160 280,148" stroke="rgba(255,255,255,0.04)" strokeWidth="1" fill="none" />
+      <path d="M 0,153 C 50,161 100,143 140,155 C 180,167 230,141 280,153" stroke="rgba(255,255,255,0.025)" strokeWidth="1" fill="none" />
+      <path d="M 138,0 C 130,45 150,95 136,150 C 122,205 152,255 138,300" stroke="rgba(255,255,255,0.04)" strokeWidth="1" fill="none" />
+      <path d="M 143,0 C 151,50 131,100 145,150 C 159,200 129,250 143,300" stroke="rgba(255,255,255,0.025)" strokeWidth="1" fill="none" />
+    </svg>
+  );
+}
+
+function TopoBackground({ tint }) {
+  const baseColor = tint ? "rgba(90,230,222," : "rgba(255,255,255,";
+  const opA = tint ? "0.025)" : "0.02)";
+  const opB = tint ? "0.018)" : "0.015)";
+  return (
+    <svg viewBox="0 0 400 800" preserveAspectRatio="none" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 0 }}>
+      {/* Pair 1 */}
+      <path d="M 0,80 C 60,72 140,90 200,78 C 260,66 340,88 400,80" stroke={baseColor + opA} strokeWidth="1" fill="none" />
+      <path d="M 0,86 C 70,94 130,76 200,88 C 270,100 330,74 400,86" stroke={baseColor + opB} strokeWidth="1" fill="none" />
+      {/* Pair 2 */}
+      <path d="M 0,220 C 80,210 160,235 240,218 C 320,201 360,230 400,220" stroke={baseColor + opA} strokeWidth="1" fill="none" />
+      <path d="M 0,226 C 90,236 150,214 240,228 C 330,242 370,216 400,226" stroke={baseColor + opB} strokeWidth="1" fill="none" />
+      {/* Pair 3 */}
+      <path d="M 0,380 C 50,370 120,395 200,376 C 280,357 350,390 400,380" stroke={baseColor + opA} strokeWidth="1" fill="none" />
+      <path d="M 0,386 C 60,396 110,374 200,390 C 290,406 340,372 400,386" stroke={baseColor + opB} strokeWidth="1" fill="none" />
+      {/* Pair 4 */}
+      <path d="M 0,520 C 70,512 150,530 220,516 C 290,502 360,528 400,520" stroke={baseColor + opA} strokeWidth="1" fill="none" />
+      <path d="M 0,526 C 80,534 140,512 220,528 C 300,544 350,510 400,526" stroke={baseColor + opB} strokeWidth="1" fill="none" />
+      {/* Pair 5 */}
+      <path d="M 0,660 C 55,650 130,675 210,656 C 290,637 360,668 400,660" stroke={baseColor + opA} strokeWidth="1" fill="none" />
+      <path d="M 0,666 C 65,676 120,652 210,670 C 300,688 350,654 400,666" stroke={baseColor + opB} strokeWidth="1" fill="none" />
+      {/* Pair 6 */}
+      <path d="M 0,760 C 60,752 140,770 200,758 C 260,746 340,768 400,760" stroke={baseColor + opA} strokeWidth="1" fill="none" />
+      <path d="M 0,766 C 70,774 130,756 200,768 C 270,780 330,754 400,766" stroke={baseColor + opB} strokeWidth="1" fill="none" />
+    </svg>
+  );
+}
+
+function TrailDivider({ className = "" }) {
+  return (
+    <svg viewBox="0 0 400 12" preserveAspectRatio="none" className={className} style={{ width: "100%", height: "8px", display: "block", overflow: "visible" }}>
+      <path d="M 0,5 C 60,2 140,8 200,4 C 260,0 340,9 400,5" stroke="rgba(255,255,255,0.04)" strokeWidth="1" fill="none" />
+      <path d="M 0,8 C 70,11 130,4 200,9 C 270,14 330,3 400,8" stroke="rgba(255,255,255,0.025)" strokeWidth="1" fill="none" />
+    </svg>
+  );
+}
+
 // ─── Sub Components ──────────────────────────────────────────────────────────
 
 function Sparkline({ data, width = 200, height = 40, color = "#5ae6de" }) {
@@ -240,21 +290,31 @@ function Sparkline({ data, width = 200, height = 40, color = "#5ae6de" }) {
 function StatBox({ value, label, large }) {
   return (
     <div className="text-center">
-      <div className={`font-semibold tabular-nums ${large ? "text-3xl" : "text-xl"}`} style={{ color: "#e8e8e8" }}>
+      <div
+        className={`tabular-nums ${large ? "text-3xl" : "text-xl"}`}
+        style={{
+          color: "var(--color-text)",
+          fontFamily: "var(--font-haas)",
+          fontWeight: large ? 200 : 300,
+          letterSpacing: "-0.04em",
+        }}
+      >
         {value}
       </div>
-      <div className="text-xs mt-0.5" style={{ color: "#666" }}>
-        {label}
-      </div>
+      {label && (
+        <div className="mt-0.5" style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+          {label}
+        </div>
+      )}
     </div>
   );
 }
 
 function StaticMap({ polyline, token, width = 400, height = 200 }) {
-  if (!polyline || !token) return <div className="rounded-lg" style={{ background: "#1a1a1a", height }} />;
+  if (!polyline || !token) return <div style={{ background: "var(--color-bg-mid)", height, borderRadius: "8px" }} />;
   const encoded = encodeURIComponent(polyline);
   const src = `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/path-2+5ae6de-0.8(${encoded})/auto/${width}x${height}@2x?access_token=${token}&padding=30&logo=false&attribution=false`;
-  return <img src={src} alt="" className="w-full rounded-lg" style={{ height }} loading="lazy" />;
+  return <img src={src} alt="" className="w-full" style={{ height, borderRadius: "8px" }} loading="lazy" />;
 }
 
 function ActivityCard({ activity, token, onClick }) {
@@ -266,117 +326,221 @@ function ActivityCard({ activity, token, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="w-full text-left rounded-xl p-3 mb-3 border transition-colors"
-      style={{ background: "#1a1a1a", borderColor: "#2a2a2a" }}
+      className="w-full text-left mb-4 transition-colors"
+      style={{ background: "transparent" }}
     >
       <div className="flex justify-between items-center mb-2">
-        <span className="font-medium" style={{ color: "#e8e8e8" }}>
-          {activity.name}
-        </span>
-        <span className="text-xs" style={{ color: "#666" }}>
-          {formatTime(activity.start_date_local)}
-        </span>
+        <span className="text-label tabular-nums">{formatTime(activity.start_date_local)}</span>
       </div>
       {hasGPS && <StaticMap polyline={activity.summary_polyline} token={token} height={140} />}
-      <div className="flex gap-4 mt-2 text-sm tabular-nums" style={{ color: "#e8e8e8" }}>
-        {!isYoga && activity.distance > 0 && <span>{formatDistance(activity.distance)} mi</span>}
+      <div className="flex gap-4 mt-2 text-sm tabular-nums" style={{ color: "var(--color-text-soft)" }}>
+        {!isYoga && activity.distance > 0 && <span>{formatDistance(activity.distance)}</span>}
         <span>{formatDuration(activity.moving_time)}</span>
         {!isYoga && activity.distance > 0 && (
-          <span>
-            {isRide
-              ? `${formatSpeed(activity.average_speed)} mph`
-              : `${formatPace(activity.average_speed)}/mi`}
-          </span>
+          <span>{isRide ? formatSpeed(activity.average_speed) : formatPace(activity.average_speed)}</span>
         )}
         {hasHR && (
-          <span style={{ color: "#5ae6de" }}>{Math.round(activity.average_heartrate)} bpm</span>
+          <span style={{ color: "var(--color-accent)" }}>{Math.round(activity.average_heartrate)}</span>
         )}
       </div>
+      <TrailDivider className="mt-4" />
     </button>
   );
 }
 
-function BodyState({ daily }) {
-  if (!daily) return null;
-  const { sleep_score, readiness_score, hrv, rhr, contributors } = daily;
-  if (!sleep_score && !readiness_score) return null;
+// ─── Inner Screen Shell ──────────────────────────────────────────────────────
 
-  const bars = [
-    { label: "RHR", value: rhr, unit: "bpm", pct: rhr ? Math.min(100, (rhr / 80) * 100) : 0 },
-    {
-      label: "HRV bal.",
-      value: contributors?.hrv_balance ? ["Low", "Fair", "Good", "Optimal"][Math.min(3, Math.floor(contributors.hrv_balance / 25))] : null,
-      pct: contributors?.hrv_balance || 0,
-    },
-    {
-      label: "Recovery",
-      value: contributors?.recovery_index ? ["Low", "Fair", "Good", "Optimal"][Math.min(3, Math.floor(contributors.recovery_index / 25))] : null,
-      pct: contributors?.recovery_index || 0,
-    },
-    {
-      label: "Sleep bal.",
-      value: contributors?.total_sleep ? ["Attn", "Fair", "Good", "Optimal"][Math.min(3, Math.floor(contributors.total_sleep / 25))] : null,
-      pct: contributors?.total_sleep || 0,
-    },
-  ];
-
+function InnerScreen({ icon, onBack, tint, children }) {
   return (
-    <div className="mt-6">
-      <div className="text-xs font-medium tracking-widest mb-3" style={{ color: "#666" }}>
-        BODY
-      </div>
-      <div className="flex flex-wrap gap-x-6 gap-y-1 mb-4">
-        {sleep_score && (
-          <div>
-            <span className="text-sm" style={{ color: "#666" }}>Sleep </span>
-            <span className="font-semibold tabular-nums" style={{ color: "#e8e8e8" }}>{sleep_score}</span>
+    <div className="fixed inset-0 z-40 overflow-y-auto" style={{ background: "var(--color-bg)" }}>
+      <div style={{ position: "relative", minHeight: "100%" }}>
+        <TopoBackground tint={tint} />
+        <div className="relative z-10 max-w-lg mx-auto px-5 pb-8" style={{ paddingTop: "env(safe-area-inset-top, 16px)" }}>
+          {/* Icon nav */}
+          <div className="flex items-center justify-between py-4">
+            <div style={{ width: "32px", height: "32px" }}>
+              {icon}
+            </div>
+            <button
+              onClick={onBack}
+              style={{ color: "var(--color-text-dim)", minWidth: "44px", minHeight: "44px", display: "flex", alignItems: "center", justifyContent: "flex-end", background: "transparent" }}
+            >
+              <svg width="20" height="20" viewBox="0 0 40 40" fill="none">
+                <path d="M 10,2 C 8,6 7,12 8,16 C 16,12 26,12 32,16" stroke="currentColor" strokeWidth="0.6" strokeLinecap="round" fill="none"/>
+                <path d="M 12,16 C 10,24 8,30 6,36" stroke="currentColor" strokeWidth="0.6" strokeLinecap="round" fill="none"/>
+                <path d="M 26,14 C 28,22 30,28 31,36" stroke="currentColor" strokeWidth="0.6" strokeLinecap="round" fill="none"/>
+                <circle cx="8.5" cy="6" r="0.5" fill="currentColor"/>
+              </svg>
+            </button>
           </div>
-        )}
-        {readiness_score && (
-          <div>
-            <span className="text-sm" style={{ color: "#666" }}>Readiness </span>
-            <span className="font-semibold tabular-nums" style={{ color: "#e8e8e8" }}>{readiness_score}</span>
-          </div>
-        )}
-        {hrv && (
-          <div>
-            <span className="text-sm" style={{ color: "#666" }}>HRV </span>
-            <span className="font-semibold tabular-nums" style={{ color: "#e8e8e8" }}>{hrv}</span>
-          </div>
-        )}
-        {rhr && (
-          <div>
-            <span className="text-sm" style={{ color: "#666" }}>RHR </span>
-            <span className="font-semibold tabular-nums" style={{ color: "#e8e8e8" }}>{rhr}</span>
-          </div>
-        )}
-      </div>
-      <div className="space-y-2">
-        {bars.map(
-          (b) =>
-            b.value && (
-              <div key={b.label} className="flex items-center gap-3">
-                <span className="text-xs w-16 shrink-0" style={{ color: "#666" }}>
-                  {b.label}
-                </span>
-                <span className="text-sm w-16 shrink-0 tabular-nums" style={{ color: "#e8e8e8" }}>
-                  {b.value} {b.unit || ""}
-                </span>
-                <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "#2a2a2a" }}>
-                  <div
-                    className="h-full rounded-full"
-                    style={{ width: `${Math.min(100, b.pct)}%`, background: "#5ae6de" }}
-                  />
-                </div>
-              </div>
-            )
-        )}
+          <TrailDivider className="mb-6" />
+          {children}
+        </div>
       </div>
     </div>
   );
 }
 
-function WeekChart({ activities }) {
+// ─── Sleep Screen ────────────────────────────────────────────────────────────
+
+function SleepScreen({ daily, onBack }) {
+  const d = daily || {};
+  const { sleep_score, readiness_score, hrv, rhr, contributors, total_sleep } = d;
+  const hasData = sleep_score || readiness_score;
+
+  // Score ring SVG
+  const ScoreRing = ({ score, label, size = 100 }) => {
+    if (!score) return null;
+    const radius = (size - 10) / 2;
+    const circumference = 2 * Math.PI * radius;
+    const progress = (score / 100) * circumference;
+    return (
+      <div className="flex flex-col items-center">
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+          {/* Topo-style concentric background rings */}
+          {[0.7, 0.5, 0.3].map((scale, i) => (
+            <circle
+              key={i}
+              cx={size / 2}
+              cy={size / 2}
+              r={radius * scale}
+              fill="none"
+              stroke="rgba(255,255,255,0.02)"
+              strokeWidth="0.5"
+            />
+          ))}
+          {/* Track */}
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke="rgba(255,255,255,0.04)"
+            strokeWidth="2"
+          />
+          {/* Progress */}
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke="var(--color-accent)"
+            strokeWidth="2"
+            strokeDasharray={`${progress} ${circumference - progress}`}
+            strokeDashoffset={circumference * 0.25}
+            strokeLinecap="round"
+            style={{ transition: "stroke-dasharray 0.6s ease" }}
+          />
+          <text
+            x={size / 2}
+            y={size / 2}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fill="var(--color-text)"
+            style={{ fontFamily: "var(--font-haas)", fontSize: `${size * 0.28}px`, fontWeight: 200, letterSpacing: "-0.04em" }}
+          >
+            {score}
+          </text>
+        </svg>
+        {label && (
+          <div className="mt-1" style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+            {label}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const bars = [
+    { label: "rhr", value: rhr, pct: rhr ? Math.min(100, (rhr / 80) * 100) : 0 },
+    { label: "hrv", value: contributors?.hrv_balance || null, pct: contributors?.hrv_balance || 0 },
+    { label: "temp", value: contributors?.recovery_index || null, pct: contributors?.recovery_index || 0 },
+    { label: "sleep", value: contributors?.total_sleep || null, pct: contributors?.total_sleep || 0 },
+  ];
+
+  return (
+    <InnerScreen icon={<svg width="32" height="32" viewBox="0 0 40 40" fill="none"><path d="M 22,6 C 14,8 10,14 10,22 C 10,28 16,34 24,34 C 28,34 31,32 33,29 C 28,32 20,30 16,24 C 12,18 14,10 22,6" stroke="rgba(245,247,248,0.3)" strokeWidth="0.6" strokeLinecap="round" fill="none"/></svg>} onBack={onBack}>
+      {!hasData ? (
+        <div className="py-16 text-center" style={{ color: "var(--color-text-dim)", opacity: 0.3 }}>
+          <svg width="48" height="48" viewBox="0 0 40 40" fill="none" style={{ margin: "0 auto" }}>
+            <path d="M 22,6 C 14,8 10,14 10,22 C 10,28 16,34 24,34 C 28,34 31,32 33,29 C 28,32 20,30 16,24 C 12,18 14,10 22,6" stroke="currentColor" strokeWidth="0.6" strokeLinecap="round" fill="none"/>
+          </svg>
+        </div>
+      ) : (
+        <>
+          {/* Score rings */}
+          <div className="flex justify-center gap-8 mb-8">
+            <ScoreRing score={sleep_score} label="sleep" size={120} />
+            <ScoreRing score={readiness_score} label="readiness" size={120} />
+          </div>
+
+          <TrailDivider className="mb-6" />
+
+          {/* Key metrics */}
+          <div className="flex justify-center gap-10 mb-6">
+            {hrv && (
+              <div className="text-center">
+                <div className="text-display text-2xl" style={{ color: "var(--color-text)" }}>{hrv}</div>
+                <div className="mt-0.5" style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase" }}>hrv</div>
+              </div>
+            )}
+            {rhr && (
+              <div className="text-center">
+                <div className="text-display text-2xl" style={{ color: "var(--color-text)" }}>{rhr}</div>
+                <div className="mt-0.5" style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase" }}>rhr</div>
+              </div>
+            )}
+            {total_sleep && (
+              <div className="text-center">
+                <div className="text-display text-2xl" style={{ color: "var(--color-text)" }}>{formatDuration(total_sleep)}</div>
+                <div className="mt-0.5" style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase" }}>hrs</div>
+              </div>
+            )}
+          </div>
+
+          <TrailDivider className="mb-6" />
+
+          {/* Contributors */}
+          <div className="space-y-4">
+            {bars.map(
+              (b, i) =>
+                b.value && (
+                  <div key={i} className="flex items-center gap-3">
+                    <span
+                      className="shrink-0 text-right"
+                      style={{ width: "3.5rem", fontSize: "0.55rem", color: "#555", letterSpacing: "0.04em", textTransform: "uppercase" }}
+                    >
+                      {b.label}
+                    </span>
+                    <span
+                      className="text-sm w-10 shrink-0 tabular-nums text-right"
+                      style={{ color: "var(--color-text-soft)", fontFamily: "var(--font-haas)", fontWeight: 300 }}
+                    >
+                      {b.value}
+                    </span>
+                    <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.04)" }}>
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${Math.min(100, b.pct)}%`,
+                          background: "var(--color-accent)",
+                          transition: "width 0.6s ease",
+                        }}
+                      />
+                    </div>
+                  </div>
+                )
+            )}
+          </div>
+        </>
+      )}
+    </InnerScreen>
+  );
+}
+
+// ─── Coach Screen ────────────────────────────────────────────────────────────
+
+function CoachScreen({ activities, onBack }) {
   const days = [];
   for (let i = 6; i >= 0; i--) {
     const d = daysAgo(i);
@@ -410,45 +574,168 @@ function WeekChart({ activities }) {
     else break;
   }
 
+  // Monthly totals (last 4 months)
+  const monthlyData = useMemo(() => {
+    const months = [];
+    for (let i = 0; i < 4; i++) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const year = d.getFullYear();
+      const month = d.getMonth();
+      const key = `${year}-${String(month + 1).padStart(2, "0")}`;
+      const label = d.toLocaleDateString("en-US", { month: "short" });
+      const acts = Object.values(activities).filter((a) => {
+        const ad = new Date(a.start_date_local);
+        return ad.getFullYear() === year && ad.getMonth() === month;
+      });
+      const totalMins = acts.reduce((s, a) => s + (a.moving_time || 0) / 60, 0);
+      const totalDist = acts.reduce((s, a) => s + (a.distance || 0), 0);
+      months.push({ key, label, count: acts.length, minutes: totalMins, distance: totalDist });
+    }
+    return months.reverse();
+  }, [activities]);
+
   return (
-    <div className="mt-6">
-      <div className="text-xs font-medium tracking-widest mb-3" style={{ color: "#666" }}>
-        THIS WEEK
-      </div>
-      <div className="flex items-end gap-1.5 h-16 mb-2">
+    <InnerScreen icon={<svg width="32" height="32" viewBox="0 0 40 40" fill="none"><path d="M 10,28 L 20,12 L 30,28" stroke="rgba(245,247,248,0.3)" strokeWidth="0.6" strokeLinecap="round" strokeLinejoin="round" fill="none"/><path d="M 17,28 C 18,22 20,18 20,16" stroke="rgba(245,247,248,0.3)" strokeWidth="0.4" strokeLinecap="round" fill="none" opacity="0.5"/><path d="M 23,28 C 22,22 20,18 20,16" stroke="rgba(245,247,248,0.3)" strokeWidth="0.4" strokeLinecap="round" fill="none" opacity="0.5"/><path d="M 4,28 C 12,27 28,27 36,28" stroke="rgba(245,247,248,0.3)" strokeWidth="0.5" strokeLinecap="round" fill="none" opacity="0.3"/></svg>} onBack={onBack}>
+      {/* This week */}
+      <div className="mt-0.5 mb-3" style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase" }}>this week</div>
+
+      {/* Week bar chart */}
+      <div className="flex items-end gap-2 mb-1" style={{ height: "72px" }}>
         {days.map((d) => (
-          <div key={d.date} className="flex-1 flex flex-col items-center">
+          <div key={d.date} className="flex-1 flex flex-col items-center justify-end h-full">
             <div
               className="w-full rounded-sm"
               style={{
-                height: `${Math.max(2, (d.minutes / maxMin) * 56)}px`,
-                background: d.minutes > 0 ? "#5ae6de" : "#2a2a2a",
+                height: `${Math.max(2, (d.minutes / maxMin) * 64)}px`,
+                background: d.minutes > 0 ? "var(--color-accent)" : "rgba(255,255,255,0.04)",
+                opacity: d.minutes > 0 ? 0.7 : 1,
+                transition: "height 0.4s ease",
               }}
             />
           </div>
         ))}
       </div>
-      <div className="flex gap-1.5 mb-3">
+      {/* Day labels */}
+      <div className="flex gap-2 mb-3">
         {days.map((d) => (
-          <div key={d.date} className="flex-1 text-center text-xs" style={{ color: "#666" }}>
+          <div key={d.date} className="flex-1 text-center" style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase" }}>
             {d.label}
           </div>
         ))}
       </div>
-      <div className="text-sm" style={{ color: "#666" }}>
-        {totalH}h {totalM}m
-        {Object.entries(typeCounts).map(([type, count]) => (
-          <span key={type}>
-            {" "} · {count} {type.toLowerCase()}{count > 1 ? "s" : ""}
+      {/* Week summary */}
+      <div className="flex items-baseline gap-6 mb-2">
+        <span>
+          <span className="text-display text-2xl" style={{ color: "var(--color-text)" }}>
+            {totalH}:{String(totalM).padStart(2, "0")}
           </span>
-        ))}
+          <span className="ml-1" style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase" }}>hrs</span>
+        </span>
+        <span>
+          <span className="text-display text-base" style={{ color: "var(--color-accent)" }}>{weekActivities.length}</span>
+          <span className="ml-1" style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase" }}>runs</span>
+        </span>
       </div>
+
       {streak > 1 && (
-        <div className="text-sm mt-1" style={{ color: "#5ae6de" }}>
-          {streak} consecutive days active
+        <div className="text-sm mb-4 tabular-nums" style={{ color: "var(--color-accent)", fontFamily: "var(--font-haas)", fontWeight: 300 }}>
+          {streak} <span style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase" }}>day streak</span>
         </div>
       )}
-    </div>
+
+      <TrailDivider className="my-6" />
+
+      {/* Monthly overview */}
+      <div className="mb-3" style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase" }}>monthly</div>
+      <div className="grid grid-cols-4 gap-3">
+        {monthlyData.map((m) => (
+          <div key={m.key} className="text-center">
+            <div className="mb-1" style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase" }}>{m.label}</div>
+            <div className="text-display text-lg" style={{ color: "var(--color-text)" }}>{m.count}</div>
+            <div className="mt-0.5" style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase" }}>runs</div>
+            {m.distance > 0 && (
+              <div className="text-label mt-1 tabular-nums" style={{ color: "var(--color-text-dim)" }}>
+                {formatDistance(m.distance)} mi
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </InnerScreen>
+  );
+}
+
+// ─── History Screen ──────────────────────────────────────────────────────────
+
+function HistoryScreen({ activities, historyFilter, setHistoryFilter, historyTypes, groupedByMonth, onOpenDetail, onBack }) {
+  return (
+    <InnerScreen icon={<svg width="32" height="32" viewBox="0 0 40 40" fill="none"><path d="M 8,10 C 12,9 20,10 32,11" stroke="rgba(245,247,248,0.3)" strokeWidth="0.7" strokeLinecap="round" fill="none"/><path d="M 8,20 C 14,19 24,21 32,20" stroke="rgba(245,247,248,0.3)" strokeWidth="0.5" strokeLinecap="round" fill="none" opacity="0.6"/><path d="M 8,30 C 16,29 22,31 32,30" stroke="rgba(245,247,248,0.3)" strokeWidth="0.4" strokeLinecap="round" fill="none" opacity="0.3"/></svg>} onBack={onBack}>
+      {/* Filter dots */}
+      <div className="flex gap-3 mb-6 overflow-x-auto pb-1">
+        {historyTypes.map((type) => (
+          <button
+            key={type}
+            onClick={() => setHistoryFilter(type)}
+            className="shrink-0 transition-colors"
+            style={{
+              width: type === "All" ? "28px" : "20px",
+              height: type === "All" ? "28px" : "20px",
+              borderRadius: "50%",
+              border: "1px solid",
+              borderColor: historyFilter === type ? "var(--color-accent)" : "var(--color-border)",
+              background: historyFilter === type ? "rgba(90,230,222,0.15)" : "transparent",
+            }}
+          />
+        ))}
+      </div>
+
+      {groupedByMonth.map(([key, group]) => (
+        <div key={key} className="mb-8">
+          <TrailDivider className="mb-4" />
+          {group.activities.map((a) => {
+            const isRide = a.type === "Ride";
+            const isYoga = a.type === "Yoga";
+            const day = new Date(a.start_date_local).getDate();
+            return (
+              <div key={a.id}>
+                <button
+                  onClick={() => onOpenDetail(a.id)}
+                  className="w-full flex items-center gap-3 py-3 text-left"
+                  style={{ minHeight: "44px" }}
+                >
+                  <span
+                    className="w-7 text-right tabular-nums"
+                    style={{ color: "var(--color-text-dim)", fontFamily: "var(--font-haas)", fontWeight: 300, fontSize: "0.85rem" }}
+                  >
+                    {day}
+                  </span>
+                  <span className="flex-1" />
+                  {!isYoga && a.distance > 0 && (
+                    <span className="text-sm tabular-nums" style={{ color: "var(--color-text-soft)" }}>
+                      {formatDistance(a.distance)}
+                    </span>
+                  )}
+                  <span className="text-sm tabular-nums" style={{ color: "var(--color-text-dim)" }}>
+                    {formatDuration(a.moving_time)}
+                  </span>
+                  {a.average_heartrate && (
+                    <span className="text-sm tabular-nums" style={{ color: "var(--color-accent)" }}>
+                      {Math.round(a.average_heartrate)}
+                    </span>
+                  )}
+                </button>
+                <TrailDivider />
+              </div>
+            );
+          })}
+          <div className="mt-3 tabular-nums" style={{ color: "var(--color-text-dim)", fontFamily: "var(--font-haas)", fontWeight: 300, fontSize: "0.8rem" }}>
+            {group.totalDist > 0 && `${formatDistance(group.totalDist)}  ·  `}
+            {formatDuration(group.totalTime)}  ·  {group.count}
+          </div>
+        </div>
+      ))}
+    </InnerScreen>
   );
 }
 
@@ -474,162 +761,171 @@ function DetailOverlay({ activity, detail, daily, token, onClose }) {
       }, [])
     : [];
 
-  const locationName = activity.start_latlng ? "" : "";
-
   return (
-    <div
-      className="fixed inset-0 z-50 overflow-y-auto"
-      style={{ background: "#0a0a0a" }}
-    >
-      <div className="max-w-lg mx-auto px-4 pb-8" style={{ paddingTop: "env(safe-area-inset-top, 16px)" }}>
-        <div className="flex justify-end py-3">
-          <button onClick={onClose} className="text-2xl leading-none px-3 py-2" style={{ color: "#666", minWidth: "44px", minHeight: "44px" }}>
-            x
-          </button>
-        </div>
-
-        <h2 className="text-xl font-semibold mb-1" style={{ color: "#e8e8e8" }}>
-          {activity.name}
-        </h2>
-        <div className="text-sm mb-4" style={{ color: "#666" }}>
-          {formatDateFull(activity.start_date_local)} · {formatTime(activity.start_date_local)}
-        </div>
-
-        {hasGPS && (
-          <div className="mb-6">
-            <StaticMap polyline={activity.summary_polyline} token={token} height={200} />
+    <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "var(--color-bg)" }}>
+      <div style={{ position: "relative", minHeight: "100%" }}>
+        <TopoBackground />
+        <div className="relative z-10 max-w-lg mx-auto px-5 pb-8" style={{ paddingTop: "env(safe-area-inset-top, 16px)" }}>
+          <div className="flex justify-end py-3">
+            <button
+              onClick={onClose}
+              style={{ color: "var(--color-text-dim)", minWidth: "44px", minHeight: "44px", display: "flex", alignItems: "center", justifyContent: "center", background: "transparent" }}
+            >
+              <svg width="20" height="20" viewBox="0 0 40 40" fill="none">
+                <path d="M 10,2 C 8,6 7,12 8,16 C 16,12 26,12 32,16" stroke="currentColor" strokeWidth="0.6" strokeLinecap="round" fill="none"/>
+                <path d="M 12,16 C 10,24 8,30 6,36" stroke="currentColor" strokeWidth="0.6" strokeLinecap="round" fill="none"/>
+                <path d="M 26,14 C 28,22 30,28 31,36" stroke="currentColor" strokeWidth="0.6" strokeLinecap="round" fill="none"/>
+                <circle cx="8.5" cy="6" r="0.5" fill="currentColor"/>
+              </svg>
+            </button>
           </div>
-        )}
 
-        <div className={`grid gap-4 mb-6 ${isYoga ? "grid-cols-1" : "grid-cols-2"}`}>
-          {!isYoga && activity.distance > 0 && (
-            <>
+          <div className="text-label-lg mb-5 tabular-nums">
+            {formatTime(activity.start_date_local)}
+          </div>
+
+          {hasGPS && (
+            <div className="mb-6">
+              <StaticMap polyline={activity.summary_polyline} token={token} height={200} />
+            </div>
+          )}
+
+          <div className={`grid gap-6 mb-6 ${isYoga ? "grid-cols-1" : "grid-cols-2"}`}>
+            {!isYoga && activity.distance > 0 && (
+              <>
+                <div>
+                  <div className="text-display text-xl tabular-nums">{formatDistance(activity.distance)}</div>
+                  <div className="mt-0.5" style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase" }}>mi</div>
+                </div>
+                <div>
+                  <div className="text-display text-xl tabular-nums">
+                    {isRide ? formatSpeed(activity.average_speed) : formatPace(activity.average_speed)}
+                  </div>
+                  <div className="mt-0.5" style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase" }}>{isRide ? "mph" : "/mi"}</div>
+                </div>
+              </>
+            )}
+            <div>
+              <div className="text-display text-xl tabular-nums">{formatDuration(activity.moving_time)}</div>
+              <div className="mt-0.5" style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase" }}>time</div>
+            </div>
+            {!isYoga && activity.total_elevation_gain > 0 && (
               <div>
-                <div className="text-xs mb-1" style={{ color: "#666" }}>Distance</div>
-                <div className="text-lg font-semibold tabular-nums">{formatDistance(activity.distance)} mi</div>
+                <div className="text-display text-xl tabular-nums">{formatElevation(activity.total_elevation_gain)}</div>
+                <div className="mt-0.5" style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase" }}>ft gain</div>
               </div>
+            )}
+            {hasHR && (
+              <>
+                <div>
+                  <div className="text-display text-xl tabular-nums" style={{ color: "var(--color-accent)" }}>
+                    {Math.round(activity.average_heartrate)}
+                  </div>
+                  <div className="mt-0.5" style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase" }}>avg bpm</div>
+                </div>
+                <div>
+                  <div className="text-display text-xl tabular-nums" style={{ color: "var(--color-accent)" }}>
+                    {Math.round(activity.max_heartrate)}
+                  </div>
+                  <div className="mt-0.5" style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase" }}>max bpm</div>
+                </div>
+              </>
+            )}
+            {activity.calories > 0 && (
               <div>
-                <div className="text-xs mb-1" style={{ color: "#666" }}>{isRide ? "Avg Speed" : "Avg Pace"}</div>
-                <div className="text-lg font-semibold tabular-nums">
-                  {isRide ? `${formatSpeed(activity.average_speed)} mph` : `${formatPace(activity.average_speed)} /mi`}
+                <div className="text-display text-xl tabular-nums">{Math.round(activity.calories)}</div>
+                <div className="mt-0.5" style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase" }}>cal</div>
+              </div>
+            )}
+          </div>
+
+          {splits.length > 0 && (
+            <>
+              <TrailDivider className="mb-5" />
+              <div className="mb-6">
+                <TrailDivider className="mb-4" />
+                <div className="space-y-1">
+                  {splits.map((s, i) => (
+                    <div key={i} className="flex items-center gap-4 py-1.5 tabular-nums">
+                      <span className="w-6 text-right text-label">{i + 1}</span>
+                      <span style={{ color: "var(--color-text-soft)", fontFamily: "var(--font-haas)", fontWeight: 300, fontSize: "0.9rem" }}>
+                        {s.time > 0
+                          ? (isRide ? formatSpeed(s.distance / s.time) : formatPace(s.distance / s.time))
+                          : "--"}
+                      </span>
+                      {s.avgHR && <span style={{ color: "var(--color-accent)", fontSize: "0.85rem" }}>{Math.round(s.avgHR)}</span>}
+                    </div>
+                  ))}
                 </div>
               </div>
             </>
           )}
-          <div>
-            <div className="text-xs mb-1" style={{ color: "#666" }}>Moving Time</div>
-            <div className="text-lg font-semibold tabular-nums">{formatDuration(activity.moving_time)}</div>
-          </div>
-          {!isYoga && activity.total_elevation_gain > 0 && (
-            <div>
-              <div className="text-xs mb-1" style={{ color: "#666" }}>Elevation</div>
-              <div className="text-lg font-semibold tabular-nums">{formatElevation(activity.total_elevation_gain)} ft</div>
-            </div>
-          )}
-          {hasHR && (
+
+          {hrStream.length > 10 && (
             <>
-              <div>
-                <div className="text-xs mb-1" style={{ color: "#666" }}>Avg HR</div>
-                <div className="text-lg font-semibold tabular-nums" style={{ color: "#5ae6de" }}>
-                  {Math.round(activity.average_heartrate)} bpm
-                </div>
+              <TrailDivider className="mb-5" />
+              <div className="mb-6">
+                <TrailDivider className="mb-4" />
+                <Sparkline data={hrStream} width={360} height={50} color="#5ae6de" />
               </div>
-              <div>
-                <div className="text-xs mb-1" style={{ color: "#666" }}>Max HR</div>
-                <div className="text-lg font-semibold tabular-nums" style={{ color: "#5ae6de" }}>
-                  {Math.round(activity.max_heartrate)} bpm
+            </>
+          )}
+
+          {paceStream.length > 10 && (
+            <>
+              <TrailDivider className="mb-5" />
+              <div className="mb-6">
+                <TrailDivider className="mb-4" />
+                <Sparkline data={paceStream} width={360} height={50} color="#5ae6de" />
+              </div>
+            </>
+          )}
+
+          {daily && (daily.sleep_score || daily.readiness_score) && (
+            <>
+              <TrailDivider className="mb-5" />
+              <div className="mb-6">
+                {/* Body data for this day */}
+                <div className="flex items-center gap-2 mb-3">
+                  <svg width="16" height="16" viewBox="0 0 40 40" fill="none"><path d="M 22,6 C 14,8 10,14 10,22 C 10,28 16,34 24,34 C 28,34 31,32 33,29 C 28,32 20,30 16,24 C 12,18 14,10 22,6" stroke="rgba(245,247,248,0.2)" strokeWidth="0.6" strokeLinecap="round" fill="none"/></svg>
+                  <span style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase" }}>body that day</span>
+                </div>
+                <div className="flex flex-wrap gap-6">
+                  {daily.sleep_score && (
+                    <div>
+                      <div className="text-display text-lg tabular-nums">{daily.sleep_score}</div>
+                      <div className="mt-0.5" style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase" }}>sleep</div>
+                    </div>
+                  )}
+                  {daily.readiness_score && (
+                    <div>
+                      <div className="text-display text-lg tabular-nums">{daily.readiness_score}</div>
+                      <div className="mt-0.5" style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase" }}>ready</div>
+                    </div>
+                  )}
+                  {daily.hrv && (
+                    <div>
+                      <div className="text-display text-lg tabular-nums">{daily.hrv}</div>
+                      <div className="mt-0.5" style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase" }}>hrv</div>
+                    </div>
+                  )}
+                  {daily.rhr && (
+                    <div>
+                      <div className="text-display text-lg tabular-nums">{daily.rhr}</div>
+                      <div className="mt-0.5" style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase" }}>rhr</div>
+                    </div>
+                  )}
+                  {daily.total_sleep && (
+                    <div>
+                      <div className="text-display text-lg tabular-nums">{formatDuration(daily.total_sleep)}</div>
+                      <div className="mt-0.5" style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase" }}>hrs</div>
+                    </div>
+                  )}
                 </div>
               </div>
             </>
           )}
-          {activity.calories > 0 && (
-            <div>
-              <div className="text-xs mb-1" style={{ color: "#666" }}>Calories</div>
-              <div className="text-lg font-semibold tabular-nums">{Math.round(activity.calories)}</div>
-            </div>
-          )}
         </div>
-
-        {splits.length > 0 && (
-          <div className="mb-6">
-            <div className="text-xs font-medium tracking-widest mb-3" style={{ color: "#666" }}>
-              SPLITS
-            </div>
-            <div className="space-y-1">
-              {splits.map((s, i) => (
-                <div key={i} className="flex items-center gap-4 text-sm tabular-nums py-1">
-                  <span className="w-6 text-right" style={{ color: "#666" }}>{i + 1}</span>
-                  <span style={{ color: "#e8e8e8" }}>
-                    {s.time > 0
-                      ? (isRide ? `${formatSpeed(s.distance / s.time)} mph` : formatPace(s.distance / s.time))
-                      : "--"}
-                  </span>
-                  {s.avgHR && <span style={{ color: "#5ae6de" }}>{Math.round(s.avgHR)} bpm</span>}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {hrStream.length > 10 && (
-          <div className="mb-6">
-            <div className="text-xs font-medium tracking-widest mb-3" style={{ color: "#666" }}>
-              HR
-            </div>
-            <Sparkline data={hrStream} width={360} height={50} color="#5ae6de" />
-          </div>
-        )}
-
-        {paceStream.length > 10 && (
-          <div className="mb-6">
-            <div className="text-xs font-medium tracking-widest mb-3" style={{ color: "#666" }}>
-              PACE
-            </div>
-            <Sparkline data={paceStream} width={360} height={50} color="#5ae6de" />
-          </div>
-        )}
-
-        {daily && (daily.sleep_score || daily.readiness_score) && (
-          <div className="mb-6">
-            <div className="text-xs font-medium tracking-widest mb-3" style={{ color: "#666" }}>
-              BODY THAT DAY
-            </div>
-            <div className="flex flex-wrap gap-4 text-sm">
-              {daily.sleep_score && (
-                <span>
-                  <span style={{ color: "#666" }}>Sleep </span>
-                  <span className="tabular-nums" style={{ color: "#e8e8e8" }}>{daily.sleep_score}</span>
-                </span>
-              )}
-              {daily.readiness_score && (
-                <span>
-                  <span style={{ color: "#666" }}>Readiness </span>
-                  <span className="tabular-nums" style={{ color: "#e8e8e8" }}>{daily.readiness_score}</span>
-                </span>
-              )}
-              {daily.hrv && (
-                <span>
-                  <span style={{ color: "#666" }}>HRV </span>
-                  <span className="tabular-nums" style={{ color: "#e8e8e8" }}>{daily.hrv}</span>
-                </span>
-              )}
-              {daily.rhr && (
-                <span>
-                  <span style={{ color: "#666" }}>RHR </span>
-                  <span className="tabular-nums" style={{ color: "#e8e8e8" }}>{daily.rhr} bpm</span>
-                </span>
-              )}
-              {daily.total_sleep && (
-                <span>
-                  <span style={{ color: "#666" }}>Total </span>
-                  <span className="tabular-nums" style={{ color: "#e8e8e8" }}>
-                    {formatDuration(daily.total_sleep)}
-                  </span>
-                </span>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -670,39 +966,54 @@ function RecordingView({ rec, onPause, onResume, onStop, mapContainerRef }) {
       case "pace": return "/mi";
       case "speed": return "mph";
       case "avgSpeed": return "avg mph";
-      case "elevation": return "elev";
-      case "cadence": return "cadence";
+      case "elevation": return "ft";
+      case "cadence": return "rpm";
       case "calories": return "cal";
-      case "avgHR": return "avg hr";
-      case "maxHR": return "max hr";
-      default: return key;
+      case "avgHR": return "avg bpm";
+      case "maxHR": return "max bpm";
+      default: return "";
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "#0a0a0a" }}>
-      {!isYoga && (
-        <div ref={mapContainerRef} className="flex-1 min-h-0" style={{ minHeight: "40vh" }} />
-      )}
-      {isYoga && <div className="flex-1" />}
+    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "var(--color-bg)" }}>
+      {/* Topo background behind everything */}
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 0 }}>
+        <TopoBackground tint={!rec.isPaused} />
+      </div>
 
-      <div className="px-4 pb-6" style={{ paddingBottom: "max(env(safe-area-inset-bottom, 24px), 24px)" }}>
+      {!isYoga && (
+        <div ref={mapContainerRef} className="flex-1 min-h-0 relative z-10" style={{ minHeight: "40vh" }} />
+      )}
+      {isYoga && <div className="flex-1 relative z-10" />}
+
+      <div className="px-5 pb-6 relative z-10" style={{ paddingBottom: "max(env(safe-area-inset-bottom, 24px), 24px)" }}>
         <div className="flex justify-between items-center mb-4">
-          <span className="font-medium" style={{ color: "#e8e8e8" }}>
-            {rec.type === "Run" && rec.elevGain > 50 ? "Trail Run" : rec.type}
-          </span>
+          {/* Breath alpaca as recording indicator */}
+          <svg width="24" height="24" viewBox="0 0 40 40" fill="none" style={{ opacity: 0.4 }}>
+            <path d="M 10,2 C 8,6 7,12 8,16 C 16,12 26,12 32,16" stroke="var(--color-warm)" strokeWidth="0.6" strokeLinecap="round" fill="none"/>
+            <path d="M 12,16 C 10,24 8,30 6,36" stroke="var(--color-warm)" strokeWidth="0.6" strokeLinecap="round" fill="none"/>
+            <path d="M 26,14 C 28,22 30,28 31,36" stroke="var(--color-warm)" strokeWidth="0.6" strokeLinecap="round" fill="none"/>
+            <circle cx="8.5" cy="6" r="0.5" fill="var(--color-warm)"/>
+          </svg>
           {rec.currentHR && (
-            <span className="text-lg font-semibold tabular-nums" style={{ color: "#5ae6de" }}>
-              {rec.currentHR}
+            <span
+              className="tabular-nums"
+              style={{ color: "var(--color-accent)", fontFamily: "var(--font-haas)", fontWeight: 200, fontSize: "1.25rem" }}
+            >
+              {rec.currentHR} <span style={{ fontSize: "0.55rem", color: "rgba(90,230,222,0.5)", letterSpacing: "0.06em", textTransform: "uppercase" }}>bpm</span>
             </span>
           )}
         </div>
 
-        <div className="grid grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-3 gap-4 mb-3">
           {config.row1.map((key) => (
             <StatBox key={key} value={statValue(key)} label={statLabel(key)} large />
           ))}
         </div>
+
+        <TrailDivider className="my-3" />
+
         {config.row2.length > 0 && (
           <div className={`grid gap-4 mb-6 ${config.row2.length === 3 ? "grid-cols-3" : config.row2.length === 2 ? "grid-cols-2" : "grid-cols-1"}`}>
             {config.row2.map((key) => (
@@ -715,26 +1026,41 @@ function RecordingView({ rec, onPause, onResume, onStop, mapContainerRef }) {
           <div className="flex gap-3">
             <button
               onClick={onResume}
-              className="flex-1 py-4 rounded-xl text-lg font-semibold"
-              style={{ background: "#5ae6de", color: "#0a0a0a" }}
+              className="flex-1 py-4 rounded-xl flex items-center justify-center"
+              style={{ background: "var(--color-accent)" }}
             >
-              Resume
+              {/* Play - sumi-e triangle */}
+              <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
+                <path d="M 12,6 C 12,14 12,26 12,34" stroke="var(--color-bg)" strokeWidth="0.8" strokeLinecap="round" fill="none"/>
+                <path d="M 12,6 C 20,10 26,14 32,20" stroke="var(--color-bg)" strokeWidth="0.8" strokeLinecap="round" fill="none"/>
+                <path d="M 32,20 C 26,26 20,30 12,34" stroke="var(--color-bg)" strokeWidth="0.8" strokeLinecap="round" fill="none"/>
+              </svg>
             </button>
             <button
               onClick={onStop}
-              className="flex-1 py-4 rounded-xl text-lg font-semibold border"
-              style={{ borderColor: "#2a2a2a", color: "#e8e8e8" }}
+              className="flex-1 py-4 rounded-xl flex items-center justify-center"
+              style={{ border: "1px solid var(--color-border-strong)", background: "transparent" }}
             >
-              Stop
+              {/* Stop - sumi-e square */}
+              <svg width="20" height="20" viewBox="0 0 40 40" fill="none">
+                <path d="M 10,10 C 16,10 24,10 30,10" stroke="var(--color-text-soft)" strokeWidth="0.7" strokeLinecap="round" fill="none"/>
+                <path d="M 30,10 C 30,16 30,24 30,30" stroke="var(--color-text-soft)" strokeWidth="0.7" strokeLinecap="round" fill="none"/>
+                <path d="M 30,30 C 24,30 16,30 10,30" stroke="var(--color-text-soft)" strokeWidth="0.6" strokeLinecap="round" fill="none" opacity="0.7"/>
+                <path d="M 10,30 C 10,24 10,16 10,10" stroke="var(--color-text-soft)" strokeWidth="0.6" strokeLinecap="round" fill="none" opacity="0.7"/>
+              </svg>
             </button>
           </div>
         ) : (
           <button
             onClick={onPause}
-            className="w-full py-4 rounded-xl text-lg font-semibold"
-            style={{ background: "#5ae6de", color: "#0a0a0a" }}
+            className="w-full py-4 rounded-xl flex items-center justify-center"
+            style={{ background: "var(--color-accent)" }}
           >
-            Pause
+            {/* Pause - sumi-e bars */}
+            <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
+              <path d="M 14,8 C 14,14 14,26 14,32" stroke="var(--color-bg)" strokeWidth="0.8" strokeLinecap="round" fill="none"/>
+              <path d="M 26,8 C 26,14 26,26 26,32" stroke="var(--color-bg)" strokeWidth="0.8" strokeLinecap="round" fill="none"/>
+            </svg>
           </button>
         )}
       </div>
@@ -744,7 +1070,7 @@ function RecordingView({ rec, onPause, onResume, onStop, mapContainerRef }) {
 
 // ─── Settings View ───────────────────────────────────────────────────────────
 
-function SettingsView({ settings, onSave, onImportStrava }) {
+function SettingsView({ settings, onSave, onImportStrava, onBack }) {
   const [mapboxToken, setMapboxToken] = useState(settings?.mapboxToken || "");
   const [ouraToken, setOuraToken] = useState(settings?.ouraToken || "");
   const [stravaClientId, setStravaClientId] = useState(settings?.stravaClientId || "");
@@ -811,170 +1137,450 @@ function SettingsView({ settings, onSave, onImportStrava }) {
     setImporting(false);
   };
 
-  const inputClass = "w-full px-3 py-3 rounded-lg text-sm border focus:outline-none focus:border-[#5ae6de]";
-  const inputStyle = { background: "#1a1a1a", borderColor: "#2a2a2a", color: "#e8e8e8" };
+  const inputStyle = {
+    background: "var(--color-bg-mid)",
+    borderColor: "var(--color-border)",
+    color: "var(--color-text)",
+    fontFamily: "var(--font-haas)",
+    fontWeight: 300,
+  };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <label className="text-xs font-medium tracking-widest block mb-2" style={{ color: "#666" }}>
-          MAPBOX TOKEN
-        </label>
-        <input
-          type="text"
-          value={mapboxToken}
-          onChange={(e) => setMapboxToken(e.target.value)}
-          placeholder="pk.eyJ1..."
-          className={inputClass}
-          style={inputStyle}
-        />
-      </div>
-
-      <div>
-        <label className="text-xs font-medium tracking-widest block mb-2" style={{ color: "#666" }}>
-          OURA TOKEN
-        </label>
-        <input
-          type="text"
-          value={ouraToken}
-          onChange={(e) => setOuraToken(e.target.value)}
-          placeholder="Personal access token"
-          className={inputClass}
-          style={inputStyle}
-        />
-      </div>
-
-      <div className="pt-2 border-t" style={{ borderColor: "#2a2a2a" }}>
-        <div className="text-xs font-medium tracking-widest mb-2" style={{ color: "#666" }}>
-          STRAVA IMPORT
+    <InnerScreen icon={<svg width="32" height="32" viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="6" stroke="rgba(245,247,248,0.3)" strokeWidth="0.6" fill="none"/><path d="M 20,4 C 20,8 20,12 20,14" stroke="rgba(245,247,248,0.3)" strokeWidth="0.5" strokeLinecap="round" fill="none"/><path d="M 20,26 C 20,28 20,32 20,36" stroke="rgba(245,247,248,0.3)" strokeWidth="0.5" strokeLinecap="round" fill="none"/><path d="M 4,20 C 8,20 12,20 14,20" stroke="rgba(245,247,248,0.3)" strokeWidth="0.5" strokeLinecap="round" fill="none"/><path d="M 26,20 C 28,20 32,20 36,20" stroke="rgba(245,247,248,0.3)" strokeWidth="0.5" strokeLinecap="round" fill="none"/><path d="M 8.6,8.6 C 10.4,10.4 12,12 13.2,13.2" stroke="rgba(245,247,248,0.3)" strokeWidth="0.4" strokeLinecap="round" fill="none" opacity="0.5"/><path d="M 26.8,26.8 C 28.6,28.6 30.2,30.2 31.4,31.4" stroke="rgba(245,247,248,0.3)" strokeWidth="0.4" strokeLinecap="round" fill="none" opacity="0.5"/><path d="M 31.4,8.6 C 29.6,10.4 28,12 26.8,13.2" stroke="rgba(245,247,248,0.3)" strokeWidth="0.4" strokeLinecap="round" fill="none" opacity="0.5"/><path d="M 13.2,26.8 C 11.4,28.6 9.8,30.2 8.6,31.4" stroke="rgba(245,247,248,0.3)" strokeWidth="0.4" strokeLinecap="round" fill="none" opacity="0.5"/></svg>} onBack={onBack}>
+      <div className="space-y-6">
+        <div>
+          {/* mapbox */}
+          <input
+            type="text"
+            value={mapboxToken}
+            onChange={(e) => setMapboxToken(e.target.value)}
+            placeholder="pk.eyJ1..."
+            className="w-full px-3 py-3 rounded-lg text-sm border focus:outline-none"
+            style={inputStyle}
+          />
         </div>
-        <div className="space-y-2">
+
+        <div>
+          {/* oura */}
           <input
             type="text"
-            value={stravaClientId}
-            onChange={(e) => setStravaClientId(e.target.value)}
-            placeholder="Client ID"
-            className={inputClass}
+            value={ouraToken}
+            onChange={(e) => setOuraToken(e.target.value)}
+            placeholder="Personal access token"
+            className="w-full px-3 py-3 rounded-lg text-sm border focus:outline-none"
             style={inputStyle}
           />
-          <input
-            type="password"
-            value={stravaClientSecret}
-            onChange={(e) => setStravaClientSecret(e.target.value)}
-            placeholder="Client Secret"
-            className={inputClass}
-            style={inputStyle}
-          />
-          <input
-            type="text"
-            value={stravaRefreshToken}
-            onChange={(e) => setStravaRefreshToken(e.target.value)}
-            placeholder="Refresh Token"
-            className={inputClass}
-            style={inputStyle}
-          />
-          <button
-            onClick={handleImport}
-            disabled={importing || !stravaClientId || !stravaClientSecret || !stravaRefreshToken}
-            className="w-full py-3 rounded-lg text-sm font-medium disabled:opacity-40"
-            style={{ background: "#2a2a2a", color: "#e8e8e8", minHeight: "44px" }}
-          >
-            {importing ? "Importing..." : "Import All Activities"}
-          </button>
-          {importResult && (
-            <div className="text-sm" style={{ color: importResult.startsWith("Error") ? "#ff6b6b" : "#5ae6de" }}>
-              {importResult}
+        </div>
+
+        <TrailDivider className="my-2" />
+
+        <div>
+          <TrailDivider className="mb-3" />
+          <div className="space-y-2">
+            <input
+              type="text"
+              value={stravaClientId}
+              onChange={(e) => setStravaClientId(e.target.value)}
+              placeholder="Client ID"
+              className="w-full px-3 py-3 rounded-lg text-sm border focus:outline-none"
+              style={inputStyle}
+            />
+            <input
+              type="password"
+              value={stravaClientSecret}
+              onChange={(e) => setStravaClientSecret(e.target.value)}
+              placeholder="Client Secret"
+              className="w-full px-3 py-3 rounded-lg text-sm border focus:outline-none"
+              style={inputStyle}
+            />
+            <input
+              type="text"
+              value={stravaRefreshToken}
+              onChange={(e) => setStravaRefreshToken(e.target.value)}
+              placeholder="Refresh Token"
+              className="w-full px-3 py-3 rounded-lg text-sm border focus:outline-none"
+              style={inputStyle}
+            />
+            <button
+              onClick={handleImport}
+              disabled={importing || !stravaClientId || !stravaClientSecret || !stravaRefreshToken}
+              className="w-full py-3 rounded-lg text-sm disabled:opacity-40"
+              style={{
+                background: "rgba(255,255,255,0.04)",
+                color: "var(--color-text-soft)",
+                fontFamily: "var(--font-sharp)",
+                fontWeight: 400,
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+                minHeight: "44px",
+              }}
+            >
+              {importing ? "..." : <svg width="20" height="20" viewBox="0 0 40 40" fill="none" style={{ margin: "0 auto" }}><path d="M 6,20 C 12,20 24,20 34,20" stroke="currentColor" strokeWidth="0.6" strokeLinecap="round" fill="none"/><path d="M 28,14 C 30,16 33,19 34,20 C 33,21 30,24 28,26" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" fill="none" opacity="0.6"/></svg>}
+            </button>
+            {importResult && (
+              <div className="text-sm" style={{
+                color: importResult.startsWith("Error") ? "#ff6b6b" : "var(--color-accent)",
+                fontFamily: "var(--font-haas)",
+                fontWeight: 300,
+              }}>
+                {importResult}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <TrailDivider className="my-2" />
+
+        <div>
+          <TrailDivider className="mb-3" />
+          {settings?.hrDeviceId ? (
+            <div className="flex items-center justify-between py-2">
+              <div>
+                <div style={{ color: "var(--color-text-soft)", fontFamily: "var(--font-haas)", fontWeight: 300, fontSize: "0.9rem" }}>
+                  {settings.hrDeviceId.slice(0, 8)}
+                </div>
+                <div className="text-label mt-1">{settings.hrDeviceId.slice(0, 12)}...</div>
+              </div>
+              <button
+                onClick={unpairDevice}
+                className="px-3 py-1.5 rounded-lg text-label-lg"
+                style={{ background: "rgba(255,255,255,0.04)", color: "var(--color-text-dim)" }}
+              >
+                <svg width="16" height="16" viewBox="0 0 40 40" fill="none"><path d="M 10,10 C 16,16 24,24 30,30" stroke="currentColor" strokeWidth="0.6" strokeLinecap="round" fill="none"/><path d="M 30,10 C 24,16 16,24 10,30" stroke="currentColor" strokeWidth="0.6" strokeLinecap="round" fill="none"/></svg>
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={scanForHR}
+              disabled={scanning}
+              className="w-full py-2 rounded-lg text-sm disabled:opacity-40"
+              style={{
+                background: "rgba(255,255,255,0.04)",
+                color: "var(--color-text-soft)",
+                fontFamily: "var(--font-sharp)",
+                fontWeight: 400,
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+              }}
+            >
+              {scanning ? "..." : <svg width="20" height="20" viewBox="0 0 40 40" fill="none" style={{ margin: "0 auto" }}><path d="M 20,34 C 16,30 8,24 6,18 C 4,12 6,6 12,6 C 16,6 18,8 20,12 C 22,8 24,6 28,6 C 34,6 36,12 34,18 C 32,24 24,30 20,34" stroke="currentColor" strokeWidth="0.6" strokeLinecap="round" fill="none"/></svg>}
+            </button>
+          )}
+          {bleDevices.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {bleDevices.map((r) => (
+                <button
+                  key={r.device.deviceId}
+                  onClick={() => pairDevice(r.device)}
+                  className="w-full flex items-center justify-between py-2 px-3 rounded-lg"
+                  style={{
+                    background: "var(--color-bg-mid)",
+                    color: "var(--color-text-soft)",
+                    fontFamily: "var(--font-haas)",
+                    fontWeight: 300,
+                    fontSize: "0.9rem",
+                  }}
+                >
+                  <span>{r.device.name || r.device.deviceId}</span>
+                  <span style={{ color: "var(--color-accent)" }}>+</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {bleStatus && (
+            <div className="text-label mt-2" style={{ color: bleStatus.startsWith("Error") ? "#ff6b6b" : "var(--color-accent)" }}>
+              {bleStatus}
             </div>
           )}
         </div>
-      </div>
 
-      <div className="pt-2 border-t" style={{ borderColor: "#2a2a2a" }}>
-        <div className="text-xs font-medium tracking-widest mb-2" style={{ color: "#666" }}>
-          HR MONITOR
-        </div>
-        {settings?.hrDeviceId ? (
-          <div className="flex items-center justify-between py-2">
-            <div>
-              <div className="text-sm" style={{ color: "#e8e8e8" }}>{settings.hrDeviceName || "HR Monitor"}</div>
-              <div className="text-xs" style={{ color: "#666" }}>{settings.hrDeviceId.slice(0, 12)}...</div>
-            </div>
-            <button
-              onClick={unpairDevice}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium"
-              style={{ background: "#2a2a2a", color: "#e8e8e8" }}
-            >
-              Remove
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={scanForHR}
-            disabled={scanning}
-            className="w-full py-2 rounded-lg text-sm font-medium disabled:opacity-40"
-            style={{ background: "#2a2a2a", color: "#e8e8e8" }}
-          >
-            {scanning ? "Scanning..." : "Scan for HR Monitor"}
-          </button>
-        )}
-        {bleDevices.length > 0 && (
-          <div className="mt-2 space-y-1">
-            {bleDevices.map((r) => (
-              <button
-                key={r.device.deviceId}
-                onClick={() => pairDevice(r.device)}
-                className="w-full flex items-center justify-between py-2 px-3 rounded-lg text-sm"
-                style={{ background: "#1a1a1a", color: "#e8e8e8" }}
-              >
-                <span>{r.device.name || r.device.deviceId}</span>
-                <span className="text-xs" style={{ color: "#5ae6de" }}>Pair</span>
-              </button>
-            ))}
-          </div>
-        )}
-        {bleStatus && (
-          <div className="text-xs mt-2" style={{ color: bleStatus.startsWith("Error") ? "#ff6b6b" : "#5ae6de" }}>
-            {bleStatus}
-          </div>
-        )}
+        <button
+          onClick={handleSave}
+          className="w-full py-3.5 rounded-xl text-sm"
+          style={{
+            background: "var(--color-accent)",
+            color: "var(--color-bg)",
+            fontFamily: "var(--font-sharp)",
+            fontWeight: 500,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+          }}
+        >
+          <svg width="24" height="24" viewBox="0 0 40 40" fill="none"><path d="M 8,22 C 12,26 14,28 16,30 C 20,22 26,14 34,8" stroke="#0a0a0a" strokeWidth="0.8" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
+        </button>
       </div>
-
-      <button
-        onClick={handleSave}
-        className="w-full py-3 rounded-xl text-sm font-semibold"
-        style={{ background: "#5ae6de", color: "#0a0a0a" }}
-      >
-        Save Settings
-      </button>
-    </div>
+    </InnerScreen>
   );
 }
 
 // ─── Type Selection ──────────────────────────────────────────────────────────
 
+// Sumi-e activity type icons
+const TYPE_ICONS = {
+  Run: (
+    <svg width="48" height="48" viewBox="0 0 40 40" fill="none">
+      <path d="M 10,2 C 8,6 7,12 8,16 C 16,12 26,12 32,16" stroke="rgba(245,247,248,0.4)" strokeWidth="0.6" strokeLinecap="round" fill="none"/>
+      <path d="M 12,16 C 10,24 8,30 6,36" stroke="rgba(245,247,248,0.4)" strokeWidth="0.6" strokeLinecap="round" fill="none"/>
+      <path d="M 26,14 C 28,22 30,28 31,36" stroke="rgba(245,247,248,0.4)" strokeWidth="0.6" strokeLinecap="round" fill="none"/>
+      <circle cx="8.5" cy="6" r="0.5" fill="rgba(245,247,248,0.4)"/>
+    </svg>
+  ),
+  Ride: (
+    <svg width="48" height="48" viewBox="0 0 40 40" fill="none">
+      <path d="M 6,28 C 4,22 8,16 14,16 C 18,16 20,20 18,26 C 16,30 8,32 6,28" stroke="rgba(245,247,248,0.4)" strokeWidth="0.5" strokeLinecap="round" fill="none"/>
+      <path d="M 22,28 C 20,22 24,16 30,16 C 34,16 36,20 34,26 C 32,30 24,32 22,28" stroke="rgba(245,247,248,0.4)" strokeWidth="0.5" strokeLinecap="round" fill="none"/>
+      <path d="M 14,16 C 18,10 24,8 30,10" stroke="rgba(245,247,248,0.4)" strokeWidth="0.4" strokeLinecap="round" fill="none" opacity="0.6"/>
+      <path d="M 14,22 C 18,18 24,18 30,22" stroke="rgba(245,247,248,0.4)" strokeWidth="0.3" strokeLinecap="round" fill="none" opacity="0.3"/>
+    </svg>
+  ),
+  Walk: (
+    <svg width="48" height="48" viewBox="0 0 40 40" fill="none">
+      {/* Footprints */}
+      <path d="M 14,30 C 14,28 16,26 18,28 C 18,30 16,32 14,30" stroke="rgba(245,247,248,0.4)" strokeWidth="0.5" strokeLinecap="round" fill="none"/>
+      <path d="M 22,22 C 22,20 24,18 26,20 C 26,22 24,24 22,22" stroke="rgba(245,247,248,0.4)" strokeWidth="0.5" strokeLinecap="round" fill="none"/>
+      <path d="M 14,14 C 14,12 16,10 18,12 C 18,14 16,16 14,14" stroke="rgba(245,247,248,0.4)" strokeWidth="0.5" strokeLinecap="round" fill="none"/>
+    </svg>
+  ),
+  Yoga: (
+    <svg width="48" height="48" viewBox="0 0 40 40" fill="none">
+      {/* Seated figure - simple triangle + head */}
+      <path d="M 20,10 C 20,14 20,18 20,24" stroke="rgba(245,247,248,0.4)" strokeWidth="0.5" strokeLinecap="round" fill="none"/>
+      <path d="M 10,28 C 14,24 20,24 20,24 C 20,24 26,24 30,28" stroke="rgba(245,247,248,0.4)" strokeWidth="0.5" strokeLinecap="round" fill="none"/>
+      <circle cx="20" cy="8" r="2" stroke="rgba(245,247,248,0.4)" strokeWidth="0.5" fill="none"/>
+    </svg>
+  ),
+  Hike: (
+    <svg width="48" height="48" viewBox="0 0 40 40" fill="none">
+      {/* Mountain with path */}
+      <path d="M 4,34 C 10,26 16,14 20,6 C 24,14 30,26 36,34" stroke="rgba(245,247,248,0.4)" strokeWidth="0.5" strokeLinecap="round" fill="none"/>
+      <path d="M 14,34 C 16,28 18,20 20,14" stroke="rgba(245,247,248,0.4)" strokeWidth="0.4" strokeLinecap="round" fill="none" opacity="0.4"/>
+    </svg>
+  ),
+};
+
 function TypeSelect({ onSelect, onCancel }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "#0a0a0aee" }}>
-      <div className="text-center">
-        <div className="text-lg font-medium mb-6" style={{ color: "#e8e8e8" }}>
-          What are you doing?
-        </div>
-        <div className="flex flex-wrap justify-center gap-3 mb-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(2,3,4,0.95)" }}>
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+        <TopoBackground />
+      </div>
+      <div className="text-center relative z-10">
+        <div className="flex flex-wrap justify-center gap-6 mb-10">
           {ACTIVITY_TYPES.map((type) => (
             <button
               key={type}
               onClick={() => onSelect(type)}
-              className="px-6 py-3 rounded-xl text-sm font-medium border transition-colors"
-              style={{ borderColor: "#2a2a2a", color: "#e8e8e8", background: "#1a1a1a" }}
+              className="flex items-center justify-center transition-colors"
+              style={{
+                width: "72px",
+                height: "72px",
+                borderRadius: "20px",
+                border: "1px solid var(--color-border-strong)",
+                background: "transparent",
+              }}
             >
-              {type}
+              {TYPE_ICONS[type]}
             </button>
           ))}
         </div>
-        <button onClick={onCancel} className="text-sm px-6 py-3" style={{ color: "#666", minHeight: "44px" }}>
-          Cancel
+        <button
+          onClick={onCancel}
+          className="px-6 py-3"
+          style={{ color: "var(--color-text-dim)", minHeight: "44px", background: "transparent" }}
+        >
+          <svg width="20" height="20" viewBox="0 0 40 40" fill="none"><path d="M 10,10 C 16,16 24,24 30,30" stroke="currentColor" strokeWidth="0.6" strokeLinecap="round" fill="none"/><path d="M 30,10 C 24,16 16,24 10,30" stroke="currentColor" strokeWidth="0.6" strokeLinecap="round" fill="none"/></svg>
         </button>
       </div>
+    </div>
+  );
+}
+
+// ─── Home Screen ─────────────────────────────────────────────────────────────
+
+function HomeScreen({ onNavigate, todaysActivities, daily, activities, settings, onOpenDetail, onStartRecord }) {
+  const todayDaily = daily[today()];
+  const sleepScore = todayDaily?.sleep_score;
+  const readinessScore = todayDaily?.readiness_score;
+
+  // Week summary for coach preview
+  const weekActivities = Object.values(activities).filter(
+    (a) => dateKey(a.start_date_local) >= daysAgo(6)
+  );
+  const weekMinutes = weekActivities.reduce((sum, a) => sum + (a.moving_time || 0) / 60, 0);
+  const weekH = Math.floor(weekMinutes / 60);
+  const weekM = Math.round(weekMinutes % 60);
+
+  // Streak
+  let streak = 0;
+  for (let i = 0; ; i++) {
+    const d = daysAgo(i);
+    const has = Object.values(activities).some((a) => dateKey(a.start_date_local) === d);
+    if (has) streak++;
+    else break;
+  }
+
+  return (
+    <div
+      className="min-h-screen"
+      style={{
+        background: "var(--color-bg)",
+        paddingTop: "env(safe-area-inset-top, 0px)",
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+      }}
+    >
+      {/* Hero section: alpaca icon with gradient fade */}
+      <div style={{ position: "relative", width: "100%", paddingTop: "50%", overflow: "hidden" }}>
+        <img
+          src="/icon-512.png"
+          alt=""
+          style={{
+            position: "absolute",
+            top: 0,
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "60%",
+            maxWidth: "280px",
+            opacity: 0.12,
+            filter: "grayscale(0.5)",
+            pointerEvents: "none",
+          }}
+        />
+        {/* Gradient fade */}
+        <div
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: "60%",
+            background: "linear-gradient(to bottom, transparent, var(--color-bg))",
+            pointerEvents: "none",
+          }}
+        />
+        {/* Settings gear in top right */}
+        <button
+          onClick={() => onNavigate("settings")}
+          style={{
+            position: "absolute",
+            top: "16px",
+            right: "16px",
+            color: "var(--color-text-dim)",
+            minWidth: "44px",
+            minHeight: "44px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 2,
+          }}
+          className="text-label-lg"
+        >
+          <svg width="18" height="18" viewBox="0 0 40 40" fill="none">
+            <circle cx="20" cy="20" r="6" stroke="currentColor" strokeWidth="0.6" fill="none"/>
+            <path d="M 20,4 C 20,8 20,12 20,14" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" fill="none"/>
+            <path d="M 20,26 C 20,28 20,32 20,36" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" fill="none"/>
+            <path d="M 4,20 C 8,20 12,20 14,20" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" fill="none"/>
+            <path d="M 26,20 C 28,20 32,20 36,20" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" fill="none"/>
+            <path d="M 8.6,8.6 C 10.4,10.4 12,12 13.2,13.2" stroke="currentColor" strokeWidth="0.4" strokeLinecap="round" fill="none" opacity="0.5"/>
+            <path d="M 26.8,26.8 C 28.6,28.6 30.2,30.2 31.4,31.4" stroke="currentColor" strokeWidth="0.4" strokeLinecap="round" fill="none" opacity="0.5"/>
+            <path d="M 31.4,8.6 C 29.6,10.4 28,12 26.8,13.2" stroke="currentColor" strokeWidth="0.4" strokeLinecap="round" fill="none" opacity="0.5"/>
+            <path d="M 13.2,26.8 C 11.4,28.6 9.8,30.2 8.6,31.4" stroke="currentColor" strokeWidth="0.4" strokeLinecap="round" fill="none" opacity="0.5"/>
+          </svg>
+        </button>
+      </div>
+
+      {/* 2x2 Grid with topo dividers */}
+      <div style={{ position: "relative", padding: "0 20px", marginTop: "-24px" }}>
+        <div
+          style={{
+            position: "relative",
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gridTemplateRows: "1fr 1fr",
+            minHeight: "280px",
+            aspectRatio: "1 / 1.05",
+          }}
+        >
+          {/* Topo dividers */}
+          <TopoGridDividers />
+
+          {/* Record (top-left) - breath alpaca */}
+          <button
+            onClick={onStartRecord}
+            className="relative z-10 flex items-center justify-center"
+            style={{ background: "transparent" }}
+          >
+            <svg width="56" height="56" viewBox="0 0 40 40" fill="none">
+              <path d="M 10,2 C 8,6 7,12 8,16 C 16,12 26,12 32,16" stroke="var(--color-warm)" strokeWidth="0.6" strokeLinecap="round" fill="none"/>
+              <path d="M 12,16 C 10,24 8,30 6,36" stroke="var(--color-warm)" strokeWidth="0.6" strokeLinecap="round" fill="none"/>
+              <path d="M 26,14 C 28,22 30,28 31,36" stroke="var(--color-warm)" strokeWidth="0.6" strokeLinecap="round" fill="none"/>
+              <circle cx="8.5" cy="6" r="0.5" fill="var(--color-warm)"/>
+            </svg>
+          </button>
+
+          {/* History (top-right) - brushmarks */}
+          <button
+            onClick={() => onNavigate("history")}
+            className="relative z-10 flex items-center justify-center"
+            style={{ background: "transparent" }}
+          >
+            <svg width="56" height="56" viewBox="0 0 40 40" fill="none">
+              <path d="M 8,10 C 12,9 20,10 32,11" stroke="rgba(245,247,248,0.3)" strokeWidth="0.7" strokeLinecap="round" fill="none"/>
+              <path d="M 8,20 C 14,19 24,21 32,20" stroke="rgba(245,247,248,0.3)" strokeWidth="0.5" strokeLinecap="round" fill="none" opacity="0.6"/>
+              <path d="M 8,30 C 16,29 22,31 32,30" stroke="rgba(245,247,248,0.3)" strokeWidth="0.4" strokeLinecap="round" fill="none" opacity="0.3"/>
+            </svg>
+          </button>
+
+          {/* Sleep (bottom-left) - moon crescent */}
+          <button
+            onClick={() => onNavigate("sleep")}
+            className="relative z-10 flex items-center justify-center"
+            style={{ background: "transparent" }}
+          >
+            <svg width="56" height="56" viewBox="0 0 40 40" fill="none">
+              <path d="M 22,6 C 14,8 10,14 10,22 C 10,28 16,34 24,34 C 28,34 31,32 33,29 C 28,32 20,30 16,24 C 12,18 14,10 22,6" stroke="rgba(245,247,248,0.3)" strokeWidth="0.6" strokeLinecap="round" fill="none"/>
+            </svg>
+          </button>
+
+          {/* Coach (bottom-right) - basecamp tent */}
+          <button
+            onClick={() => onNavigate("coach")}
+            className="relative z-10 flex items-center justify-center"
+            style={{ background: "transparent" }}
+          >
+            <svg width="56" height="56" viewBox="0 0 40 40" fill="none">
+              <path d="M 10,28 L 20,12 L 30,28" stroke="rgba(245,247,248,0.3)" strokeWidth="0.6" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+              <path d="M 17,28 C 18,22 20,18 20,16" stroke="rgba(245,247,248,0.3)" strokeWidth="0.4" strokeLinecap="round" fill="none" opacity="0.5"/>
+              <path d="M 23,28 C 22,22 20,18 20,16" stroke="rgba(245,247,248,0.3)" strokeWidth="0.4" strokeLinecap="round" fill="none" opacity="0.5"/>
+              <path d="M 4,28 C 12,27 28,27 36,28" stroke="rgba(245,247,248,0.3)" strokeWidth="0.5" strokeLinecap="round" fill="none" opacity="0.3"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Today's activities below the grid */}
+      {todaysActivities.length > 0 && (
+        <div className="px-5 mt-6">
+          <TrailDivider className="mb-5" />
+          <TrailDivider />
+          {todaysActivities.map((a) => (
+            <ActivityCard
+              key={a.id}
+              activity={a}
+              token={settings?.mapboxToken}
+              onClick={() => onOpenDetail(a.id)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Streak */}
+      {streak > 1 && (
+        <div className="px-5 pb-8">
+          <div className="text-sm" style={{ color: "var(--color-accent)", fontFamily: "var(--font-haas)", fontWeight: 300, opacity: 0.8 }}>
+            {streak}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -982,7 +1588,7 @@ function TypeSelect({ onSelect, onCancel }) {
 // ─── Main App ────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [view, setView] = useState("today");
+  const [view, setView] = useState("home");
   const [settings, setSettings] = useState(null);
   const [activities, setActivities] = useState({});
   const [daily, setDaily] = useState({});
@@ -1081,7 +1687,7 @@ export default function App() {
           map.flyTo({ center: [longitude, latitude], zoom: 16, duration: 1000 });
           if (!markerRef.current) {
             const el = document.createElement("div");
-            el.style.cssText = "width:12px;height:12px;background:#5ae6de;border-radius:50%;border:2px solid #0a0a0a;box-shadow:0 0 8px #5ae6de80";
+            el.style.cssText = "width:12px;height:12px;background:#5ae6de;border-radius:50%;border:2px solid #020304;box-shadow:0 0 8px #5ae6de80";
             markerRef.current = new mapboxgl.Marker(el).setLngLat([longitude, latitude]).addTo(map);
           }
         },
@@ -1157,7 +1763,7 @@ export default function App() {
           // Position dot
           if (!markerRef.current) {
             const el = document.createElement("div");
-            el.style.cssText = "width:12px;height:12px;background:#5ae6de;border-radius:50%;border:2px solid #0a0a0a;box-shadow:0 0 8px #5ae6de80";
+            el.style.cssText = "width:12px;height:12px;background:#5ae6de;border-radius:50%;border:2px solid #020304;box-shadow:0 0 8px #5ae6de80";
             markerRef.current = new mapboxgl.Marker(el).setLngLat([point.lng, point.lat]).addTo(mapRef.current);
           } else {
             markerRef.current.setLngLat([point.lng, point.lat]);
@@ -1510,151 +2116,62 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "#0a0a0a" }}>
-        <div className="text-sm" style={{ color: "#666" }}>Loading...</div>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--color-bg)" }}>
+        <div className="text-label-lg" style={{ color: "var(--color-text-dim)" }}>Loading...</div>
       </div>
     );
   }
 
-  // ─── Main Layout ─────────────────────────────────────────────────────────
+  // ─── Views ──────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen" style={{ background: "#0a0a0a", paddingTop: "env(safe-area-inset-top, 16px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 pt-4 pb-2">
-        <span className="text-sm font-semibold tracking-widest" style={{ color: "#e8e8e8" }}>
-          Andes
-        </span>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setTypeSelect(true)}
-            className="px-4 py-2.5 rounded-lg text-xs font-medium"
-            style={{ background: "#5ae6de", color: "#0a0a0a", minHeight: "44px" }}
-          >
-            record
-          </button>
-          <button
-            onClick={() => setView(view === "settings" ? "today" : "settings")}
-            className="px-3 py-2.5 rounded-lg text-xs"
-            style={{ color: view === "settings" ? "#5ae6de" : "#666", minHeight: "44px" }}
-          >
-            {view === "settings" ? "done" : "gear"}
-          </button>
-        </div>
-      </div>
+    <>
+      {/* Home screen is always rendered as base */}
+      <HomeScreen
+        onNavigate={setView}
+        todaysActivities={todaysActivities}
+        daily={daily}
+        activities={activities}
+        settings={settings}
+        onOpenDetail={openDetail}
+        onStartRecord={() => setTypeSelect(true)}
+      />
 
-      {/* Tabs */}
-      {view !== "settings" && (
-        <div className="flex gap-4 px-4 mb-4">
-          {["today", "history"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setView(tab)}
-              className="text-sm font-medium py-2 pb-1.5 border-b-2 transition-colors"
-              style={{
-                borderColor: view === tab ? "#5ae6de" : "transparent",
-                color: view === tab ? "#e8e8e8" : "#666",
-              }}
-            >
-              {tab.toUpperCase()}
-            </button>
-          ))}
-        </div>
+      {/* Inner screens overlay on top */}
+      {view === "history" && (
+        <HistoryScreen
+          activities={activities}
+          historyFilter={historyFilter}
+          setHistoryFilter={setHistoryFilter}
+          historyTypes={historyTypes}
+          groupedByMonth={groupedByMonth}
+          onOpenDetail={openDetail}
+          onBack={() => setView("home")}
+        />
       )}
 
-      {/* Content */}
-      <div className="px-4 pb-8">
-        {view === "today" && (
-          <>
-            {todaysActivities.length === 0 && (
-              <div className="text-sm py-12 text-center" style={{ color: "#666" }}>
-                No activities today
-              </div>
-            )}
-            {todaysActivities.map((a) => (
-              <ActivityCard
-                key={a.id}
-                activity={a}
-                token={settings?.mapboxToken}
-                onClick={() => openDetail(a.id)}
-              />
-            ))}
+      {view === "sleep" && (
+        <SleepScreen
+          daily={daily[today()]}
+          onBack={() => setView("home")}
+        />
+      )}
 
-            <BodyState daily={daily[today()]} />
-            <WeekChart activities={activities} />
-          </>
-        )}
+      {view === "coach" && (
+        <CoachScreen
+          activities={activities}
+          onBack={() => setView("home")}
+        />
+      )}
 
-        {view === "history" && (
-          <>
-            <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
-              {historyTypes.map((type) => (
-                <button
-                  key={type}
-                  onClick={() => setHistoryFilter(type)}
-                  className="px-4 py-2 rounded-full text-xs font-medium shrink-0 border"
-                  style={{
-                    borderColor: historyFilter === type ? "#5ae6de" : "#2a2a2a",
-                    color: historyFilter === type ? "#5ae6de" : "#666",
-                    background: historyFilter === type ? "#5ae6de15" : "transparent",
-                  }}
-                >
-                  {type}
-                </button>
-              ))}
-            </div>
-
-            {groupedByMonth.map(([key, group]) => (
-              <div key={key} className="mb-6">
-                <div className="text-xs font-medium tracking-widest mb-3" style={{ color: "#666" }}>
-                  {group.label}
-                </div>
-                {group.activities.map((a) => {
-                  const isRide = a.type === "Ride";
-                  const isYoga = a.type === "Yoga";
-                  const day = new Date(a.start_date_local).getDate();
-                  return (
-                    <button
-                      key={a.id}
-                      onClick={() => openDetail(a.id)}
-                      className="w-full flex items-center gap-3 py-3 text-left border-b"
-                      style={{ borderColor: "#1a1a1a", minHeight: "44px" }}
-                    >
-                      <span className="w-6 text-right text-sm tabular-nums" style={{ color: "#666" }}>
-                        {day}
-                      </span>
-                      <span className="flex-1 text-sm truncate" style={{ color: "#e8e8e8" }}>
-                        {a.name}
-                      </span>
-                      {!isYoga && a.distance > 0 && (
-                        <span className="text-sm tabular-nums" style={{ color: "#e8e8e8" }}>
-                          {formatDistance(a.distance)} mi
-                        </span>
-                      )}
-                      <span className="text-sm tabular-nums" style={{ color: "#666" }}>
-                        {formatDuration(a.moving_time)}
-                      </span>
-                      {a.average_heartrate && (
-                        <span className="text-sm tabular-nums" style={{ color: "#5ae6de" }}>
-                          {Math.round(a.average_heartrate)} bpm
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-                <div className="text-xs mt-2" style={{ color: "#666" }}>
-                  {group.totalDist > 0 && `${formatDistance(group.totalDist)} mi · `}
-                  {formatDuration(group.totalTime)} · {group.count} activit{group.count === 1 ? "y" : "ies"}
-                </div>
-              </div>
-            ))}
-          </>
-        )}
-
-        {view === "settings" && (
-          <SettingsView settings={settings} onSave={saveSettings} onImportStrava={importStrava} />
-        )}
-      </div>
+      {view === "settings" && (
+        <SettingsView
+          settings={settings}
+          onSave={saveSettings}
+          onImportStrava={importStrava}
+          onBack={() => setView("home")}
+        />
+      )}
 
       {/* Detail Overlay */}
       {detailId && activities[detailId] && (
@@ -1672,6 +2189,6 @@ export default function App() {
 
       {/* Type Selection */}
       {typeSelect && <TypeSelect onSelect={startRecording} onCancel={() => setTypeSelect(false)} />}
-    </div>
+    </>
   );
 }

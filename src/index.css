@@ -1,14 +1,39 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'Haas';
+  src: local('Neue Haas Grotesk Display Pro'), local('NeueHaasDisplay'), local('Helvetica Neue'), local('Helvetica');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Sharp';
+  src: local('Sharp Grotesk'), local('SharpGrotesk'), local('Inter');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
 @theme {
-  --font-body: "Inter", sans-serif;
-  --color-bg: #0a0a0a;
-  --color-surface: #1a1a1a;
-  --color-border: #2a2a2a;
+  --font-haas: 'Haas', 'Helvetica Neue', 'Helvetica', 'Inter', sans-serif;
+  --font-sharp: 'Sharp', 'Inter', sans-serif;
+  --font-body: 'Inter', sans-serif;
+
+  --color-bg: #020304;
+  --color-bg-mid: #050607;
+  --color-bg-top: #080a0b;
+  --color-surface: #0d0f10;
+  --color-border: rgba(255, 255, 255, 0.055);
+  --color-border-strong: rgba(255, 255, 255, 0.1);
   --color-accent: #5ae6de;
-  --color-accent-dim: #5ae6de40;
-  --color-text: #e8e8e8;
-  --color-text-dim: #666;
+  --color-accent-dim: rgba(90, 230, 222, 0.25);
+  --color-warm: #d4a574;
+  --color-warm-dim: rgba(212, 165, 116, 0.25);
+  --color-text: #f5f7f8;
+  --color-text-soft: rgba(245, 247, 248, 0.72);
+  --color-text-dim: rgba(245, 247, 248, 0.38);
+  --color-trail-primary: rgba(255, 255, 255, 0.04);
+  --color-trail-secondary: rgba(255, 255, 255, 0.025);
 }
 
 html {
@@ -43,4 +68,43 @@ input, select, textarea {
 .mapboxgl-ctrl-bottom-right,
 .mapboxgl-ctrl {
   display: none !important;
+}
+
+/* Typography utilities */
+.font-display {
+  font-family: var(--font-haas);
+}
+
+.font-label {
+  font-family: var(--font-sharp);
+}
+
+.text-display {
+  font-family: var(--font-haas);
+  font-weight: 200;
+  letter-spacing: -0.04em;
+}
+
+.text-display-medium {
+  font-family: var(--font-haas);
+  font-weight: 300;
+  letter-spacing: -0.04em;
+}
+
+.text-label {
+  font-family: var(--font-sharp);
+  font-size: 0.55rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+}
+
+.text-label-lg {
+  font-family: var(--font-sharp);
+  font-size: 0.65rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
 }
