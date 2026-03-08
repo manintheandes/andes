@@ -2,7 +2,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
   appId: "com.andes.app",
-  appName: "Andes",
+  appName: "Alpaca",
   webDir: "dist",
   server: {
     androidScheme: "https",
@@ -14,7 +14,7 @@ const config: CapacitorConfig = {
     preferredContentMode: "mobile",
     scrollEnabled: true,
     allowsLinkPreview: false,
-    overrideUserAgent: "Andes/1.0",
+    overrideUserAgent: "Alpaca/1.0",
   },
 };
 

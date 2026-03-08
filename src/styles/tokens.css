@@ -1,0 +1,128 @@
+@theme {
+  --color-bg: #020304;
+  --color-bg-elevated: #050607;
+  --color-surface: #080a0b;
+  --color-surface-strong: #080a0b;
+  --color-surface-soft: rgba(255, 255, 255, 0.008);
+  --color-border: rgba(255, 255, 255, 0.055);
+  --color-border-strong: rgba(255, 255, 255, 0.1);
+  --color-accent: #5ae6de;
+  --color-accent-soft: rgba(90, 230, 222, 0.1);
+  --color-accent-strong: #5ae6de;
+  --color-text: #f5f7f8;
+  --color-text-soft: rgba(245, 247, 248, 0.72);
+  --color-text-dim: rgba(245, 247, 248, 0.38);
+  --color-danger: #f5f7f8;
+  --color-warning: #f5f7f8;
+  --color-success: #5ae6de;
+  --shadow-surface: none;
+  --shadow-glow: none;
+  --radius-pill: 999px;
+  --radius-card: 24px;
+  --radius-panel: 36px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@font-face {
+  font-family: "Haas Grot Display R";
+  src: url("/fonts/Haas Grot Disp R-45 Light.otf") format("opentype");
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Haas Grot Display R";
+  src: url("/fonts/Haas Grot Disp R-55 Roman.otf") format("opentype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Haas Grot Display R";
+  src: url("/fonts/Haas Grot Disp R-65 Medium.otf") format("opentype");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Sharp Grotesk";
+  src: url("/fonts/SharpGroteskBook25.woff2") format("woff2"), url("/fonts/SharpGroteskBook25.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Sharp Grotesk";
+  src: url("/fonts/SharpGroteskMedium25.woff2") format("woff2"), url("/fonts/SharpGroteskMedium25.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+:root {
+  --font-haas: "Haas Grot Display R", "SF Pro Display", "Helvetica Neue", sans-serif;
+  --font-sharp: "Sharp Grotesk", "SF Pro Display", "Helvetica Neue", sans-serif;
+  --color-warm: #d4a574;
+  --color-warm-soft: rgba(212, 165, 116, 0.12);
+  --color-mountain: #6b9078;
+  --color-mountain-deep: #3a5f4f;
+}
+
+/* ── Variant A: Mountain Night ───────────────────────────────────────────────
+   Dark forest base. Mountain teal accent. Golden warmth on primary actions.
+   Closest to current design but warmed up to match the illustration. */
+[data-theme="mountain-night"] {
+  --color-bg: #060d0a;
+  --color-bg-elevated: #0a1610;
+  --color-surface: #0e1c15;
+  --color-surface-strong: #122018;
+  --color-surface-soft: rgba(107, 144, 120, 0.04);
+  --color-border: rgba(107, 144, 120, 0.12);
+  --color-border-strong: rgba(107, 144, 120, 0.2);
+  --color-accent: #7fb5a5;
+  --color-accent-soft: rgba(127, 181, 165, 0.1);
+  --color-accent-strong: #8ec4b0;
+  --color-success: #7fb5a5;
+  --shadow-glow: 0 0 40px rgba(127, 181, 165, 0.06);
+}
+
+/* ── Variant B: Golden Hour ──────────────────────────────────────────────────
+   Warm dark base. Alpaca gold as primary accent. Mountain green secondary.
+   Feels like sunset in the Andes. */
+[data-theme="golden-hour"] {
+  --color-bg: #0a0806;
+  --color-bg-elevated: #12100c;
+  --color-surface: #181410;
+  --color-surface-strong: #1e1a14;
+  --color-surface-soft: rgba(212, 165, 116, 0.03);
+  --color-border: rgba(212, 165, 116, 0.1);
+  --color-border-strong: rgba(212, 165, 116, 0.18);
+  --color-accent: #d4a574;
+  --color-accent-soft: rgba(212, 165, 116, 0.1);
+  --color-accent-strong: #e0b882;
+  --color-success: #7fb5a5;
+  --shadow-glow: 0 0 40px rgba(212, 165, 116, 0.06);
+}
+
+/* ── Variant C: Andes Earth ──────────────────────────────────────────────────
+   Deep mountain green everywhere. Layered depth. Golden highlights.
+   Like living inside the illustration. */
+[data-theme="andes-earth"] {
+  --color-bg: #070e0a;
+  --color-bg-elevated: #0c1810;
+  --color-surface: #14261c;
+  --color-surface-strong: #1a3024;
+  --color-surface-soft: rgba(142, 196, 176, 0.04);
+  --color-border: rgba(142, 196, 176, 0.1);
+  --color-border-strong: rgba(142, 196, 176, 0.16);
+  --color-accent: #8ec4b0;
+  --color-accent-soft: rgba(142, 196, 176, 0.1);
+  --color-accent-strong: #a0d4c2;
+  --color-success: #8ec4b0;
+  --shadow-glow: 0 0 60px rgba(142, 196, 176, 0.05);
+}

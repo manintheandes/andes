@@ -1,0 +1,63 @@
+:root {
+  --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-gentle: cubic-bezier(0.2, 0.8, 0.24, 1);
+  --duration-fast: 180ms;
+  --duration-base: 280ms;
+  --duration-slow: 420ms;
+}
+
+.andes-fade-in {
+  animation: andes-fade-in var(--duration-base) var(--ease-premium);
+}
+
+.andes-slide-up {
+  animation: andes-slide-up var(--duration-base) var(--ease-premium);
+}
+
+.andes-count-in {
+  animation: andes-count-in 520ms var(--ease-gentle);
+}
+
+@keyframes andes-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes andes-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes andes-count-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes andes-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}

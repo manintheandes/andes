@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>Andes</string>
+        <string>Alpaca</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Andes</string>
+	<string>Alpaca</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -54,16 +54,16 @@
 		<string>location</string>
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Andes needs your location to record runs, rides, and hikes.</string>
+	<string>Alpaca needs your location to record runs, rides, and hikes.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Andes needs background location to keep tracking during your activity.</string>
+	<string>Alpaca needs background location to keep tracking during your activity.</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>Andes connects to your COROS heart rate monitor during activities.</string>
+	<string>Alpaca connects to your COROS heart rate monitor during activities.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>Andes connects to your COROS heart rate monitor during activities.</string>
+	<string>Alpaca connects to your COROS heart rate monitor during activities.</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Andes reads workout data from Apple Health.</string>
+	<string>Alpaca reads workout data from Apple Health.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>Andes saves completed workouts to Apple Health.</string>
+	<string>Alpaca saves completed workouts to Apple Health.</string>
 </dict>
 </plist>
