@@ -6,6 +6,15 @@ const config: CapacitorConfig = {
   webDir: "dist",
   server: {
     androidScheme: "https",
+    hostname: "andes.app",
+  },
+  ios: {
+    backgroundColor: "#0a0a0a",
+    contentInset: "automatic",
+    preferredContentMode: "mobile",
+    scrollEnabled: false,
+    allowsLinkPreview: false,
+    overrideUserAgent: "Andes/1.0",
   },
 };
 

@@ -1,5 +1,11 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import mapboxgl from "mapbox-gl";
+import { BleClient } from "@capacitor-community/bluetooth-le";
+import { KeepAwake } from "@capacitor-community/keep-awake";
+import { registerPlugin } from "@capacitor/core";
+
+const BackgroundGeolocation = registerPlugin("BackgroundGeolocation");
+const isNative = typeof window !== "undefined" && window.Capacitor?.isNativePlatform?.();
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -15,9 +21,15 @@ const STATS_CONFIG = {
   Yoga: { row1: ["time"], row2: ["calories"] },
 };
 
-const API_BASE = typeof window !== "undefined" && window.location.protocol === "capacitor:"
-  ? "https://andes-black.vercel.app"
-  : "";
+const API_BASE = isNative ? "https://andes-black.vercel.app" : "";
+
+const HR_SERVICE = "0000180d-0000-1000-8000-00805f9b34fb";
+const HR_CHARACTERISTIC = "00002a37-0000-1000-8000-00805f9b34fb";
+
+function parseHeartRate(dataView) {
+  const flags = dataView.getUint8(0);
+  return flags & 0x01 ? dataView.getUint16(1, true) : dataView.getUint8(1);
+}
 
 // ─── Utilities ───────────────────────────────────────────────────────────────
 
@@ -82,6 +94,12 @@ function dateKey(d) {
 
 function today() {
   return dateKey(new Date());
+}
+
+function toLocalISO(date) {
+  const d = date instanceof Date ? date : new Date(date);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
 function daysAgo(n) {
@@ -149,26 +167,51 @@ function decodePolyline(str) {
 // ─── KV Helpers ──────────────────────────────────────────────────────────────
 
 async function kvGet(key) {
-  const resp = await fetch(`${API_BASE}/api/get-data?key=${key}`);
-  const data = await resp.json();
-  return data.value;
+  try {
+    const resp = await fetch(`${API_BASE}/api/get-data?key=${key}`);
+    if (!resp.ok) {
+      console.error(`kvGet(${key}) HTTP ${resp.status}`);
+      return null;
+    }
+    const data = await resp.json();
+    return data.value;
+  } catch (err) {
+    console.error(`kvGet(${key}) failed:`, err);
+    return null;
+  }
 }
 
 async function kvSet(key, value) {
-  await fetch(`${API_BASE}/api/update-data`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ key, value }),
-  });
+  try {
+    const resp = await fetch(`${API_BASE}/api/update-data`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, value }),
+    });
+    if (!resp.ok) {
+      console.error(`kvSet(${key}) HTTP ${resp.status}`);
+    }
+  } catch (err) {
+    console.error(`kvSet(${key}) failed:`, err);
+  }
 }
 
 // ─── Oura Helper ─────────────────────────────────────────────────────────────
 
 async function fetchOura(token, start, end) {
-  const resp = await fetch(`${API_BASE}/api/oura-proxy?start=${start}&end=${end}`, {
-    headers: { "x-oura-token": token },
-  });
-  return resp.json();
+  try {
+    const resp = await fetch(`${API_BASE}/api/oura-proxy?start=${start}&end=${end}`, {
+      headers: { "x-oura-token": token },
+    });
+    if (!resp.ok) {
+      console.error(`fetchOura HTTP ${resp.status}`);
+      return { daily_sleep: [], daily_readiness: [], sleep: [], heartrate: [] };
+    }
+    return resp.json();
+  } catch (err) {
+    console.error("fetchOura failed:", err);
+    return { daily_sleep: [], daily_readiness: [], sleep: [], heartrate: [] };
+  }
 }
 
 // ─── Sub Components ──────────────────────────────────────────────────────────
@@ -187,7 +230,7 @@ function Sparkline({ data, width = 200, height = 40, color = "#5ae6de" }) {
     .join(" ");
 
   return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="block">
+    <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="block">
       <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
@@ -433,7 +476,7 @@ function DetailOverlay({ activity, detail, daily, token, onClose }) {
     >
       <div className="max-w-lg mx-auto px-4 pb-8" style={{ paddingTop: "env(safe-area-inset-top, 16px)" }}>
         <div className="flex justify-end py-3">
-          <button onClick={onClose} className="text-2xl leading-none px-2" style={{ color: "#666" }}>
+          <button onClick={onClose} className="text-2xl leading-none px-3 py-2" style={{ color: "#666", minWidth: "44px", minHeight: "44px" }}>
             x
           </button>
         </div>
@@ -510,7 +553,9 @@ function DetailOverlay({ activity, detail, daily, token, onClose }) {
                 <div key={i} className="flex items-center gap-4 text-sm tabular-nums py-1">
                   <span className="w-6 text-right" style={{ color: "#666" }}>{i + 1}</span>
                   <span style={{ color: "#e8e8e8" }}>
-                    {isRide ? `${formatSpeed(s.distance / s.time)} mph` : formatPace(s.distance / s.time)}
+                    {s.time > 0
+                      ? (isRide ? `${formatSpeed(s.distance / s.time)} mph` : formatPace(s.distance / s.time))
+                      : "--"}
                   </span>
                   {s.avgHR && <span style={{ color: "#5ae6de" }}>{Math.round(s.avgHR)} bpm</span>}
                 </div>
@@ -589,7 +634,7 @@ function RecordingView({ rec, onPause, onResume, onStop, mapContainerRef }) {
   const isRide = rec.type === "Ride";
   const isYoga = rec.type === "Yoga";
   const elapsed = rec.isPaused
-    ? rec.pausedAt - rec.startTime - rec.pausedTime
+    ? (rec.pausedAt - rec.startTime - rec.pausedTime) / 1000
     : (Date.now() - rec.startTime - rec.pausedTime) / 1000;
   const avgSpeed = elapsed > 0 ? rec.distance / elapsed : 0;
 
@@ -605,6 +650,8 @@ function RecordingView({ rec, onPause, onResume, onStop, mapContainerRef }) {
       case "elevation": return formatElevation(rec.elevGain);
       case "cadence": return rec.cadence || "--";
       case "calories": return rec.calories || "--";
+      case "avgHR": return rec.avgHR || "--";
+      case "maxHR": return rec.maxHR || "--";
       default: return "--";
     }
   }
@@ -619,6 +666,8 @@ function RecordingView({ rec, onPause, onResume, onStop, mapContainerRef }) {
       case "elevation": return "elev";
       case "cadence": return "cadence";
       case "calories": return "cal";
+      case "avgHR": return "avg hr";
+      case "maxHR": return "max hr";
       default: return key;
     }
   }
@@ -696,9 +745,51 @@ function SettingsView({ settings, onSave, onImportStrava }) {
   const [stravaRefreshToken, setStravaRefreshToken] = useState(settings?.stravaRefreshToken || "");
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
+  const [scanning, setScanning] = useState(false);
+  const [bleDevices, setBleDevices] = useState([]);
+  const [bleStatus, setBleStatus] = useState(null);
 
   const handleSave = () => {
-    onSave({ mapboxToken, ouraToken, stravaClientId, stravaClientSecret, stravaRefreshToken });
+    onSave({ mapboxToken, ouraToken, stravaClientId, stravaClientSecret, stravaRefreshToken, hrDeviceId: settings?.hrDeviceId, hrDeviceName: settings?.hrDeviceName });
+  };
+
+  const scanForHR = async () => {
+    setScanning(true);
+    setBleDevices([]);
+    setBleStatus("Scanning...");
+    try {
+      await BleClient.initialize();
+      await BleClient.requestLEScan({ services: [HR_SERVICE] }, (result) => {
+        setBleDevices((prev) => {
+          if (prev.some((d) => d.device.deviceId === result.device.deviceId)) return prev;
+          return [...prev, result];
+        });
+      });
+      setTimeout(async () => {
+        try { await BleClient.stopLEScan(); } catch {}
+        setScanning(false);
+        setBleStatus(null);
+      }, 10000);
+    } catch (err) {
+      setBleStatus(`Error: ${err.message}`);
+      setScanning(false);
+    }
+  };
+
+  const pairDevice = async (device) => {
+    try {
+      await BleClient.stopLEScan();
+    } catch {}
+    setScanning(false);
+    setBleDevices([]);
+    setBleStatus(`Paired: ${device.name || device.deviceId}`);
+    onSave({ ...settings, mapboxToken, ouraToken, stravaClientId, stravaClientSecret, stravaRefreshToken, hrDeviceId: device.deviceId, hrDeviceName: device.name || "HR Monitor" });
+  };
+
+  const unpairDevice = () => {
+    const { hrDeviceId, hrDeviceName, ...rest } = settings || {};
+    onSave({ ...rest, mapboxToken, ouraToken, stravaClientId, stravaClientSecret, stravaRefreshToken });
+    setBleStatus(null);
   };
 
   const handleImport = async () => {
@@ -713,7 +804,7 @@ function SettingsView({ settings, onSave, onImportStrava }) {
     setImporting(false);
   };
 
-  const inputClass = "w-full px-3 py-2 rounded-lg text-sm border focus:outline-none focus:border-[#5ae6de]";
+  const inputClass = "w-full px-3 py-3 rounded-lg text-sm border focus:outline-none focus:border-[#5ae6de]";
   const inputStyle = { background: "#1a1a1a", borderColor: "#2a2a2a", color: "#e8e8e8" };
 
   return (
@@ -778,8 +869,8 @@ function SettingsView({ settings, onSave, onImportStrava }) {
           <button
             onClick={handleImport}
             disabled={importing || !stravaClientId || !stravaClientSecret || !stravaRefreshToken}
-            className="w-full py-2 rounded-lg text-sm font-medium disabled:opacity-40"
-            style={{ background: "#2a2a2a", color: "#e8e8e8" }}
+            className="w-full py-3 rounded-lg text-sm font-medium disabled:opacity-40"
+            style={{ background: "#2a2a2a", color: "#e8e8e8", minHeight: "44px" }}
           >
             {importing ? "Importing..." : "Import All Activities"}
           </button>
@@ -789,6 +880,56 @@ function SettingsView({ settings, onSave, onImportStrava }) {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="pt-2 border-t" style={{ borderColor: "#2a2a2a" }}>
+        <div className="text-xs font-medium tracking-widest mb-2" style={{ color: "#666" }}>
+          HR MONITOR
+        </div>
+        {settings?.hrDeviceId ? (
+          <div className="flex items-center justify-between py-2">
+            <div>
+              <div className="text-sm" style={{ color: "#e8e8e8" }}>{settings.hrDeviceName || "HR Monitor"}</div>
+              <div className="text-xs" style={{ color: "#666" }}>{settings.hrDeviceId.slice(0, 12)}...</div>
+            </div>
+            <button
+              onClick={unpairDevice}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium"
+              style={{ background: "#2a2a2a", color: "#e8e8e8" }}
+            >
+              Remove
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={scanForHR}
+            disabled={scanning}
+            className="w-full py-2 rounded-lg text-sm font-medium disabled:opacity-40"
+            style={{ background: "#2a2a2a", color: "#e8e8e8" }}
+          >
+            {scanning ? "Scanning..." : "Scan for HR Monitor"}
+          </button>
+        )}
+        {bleDevices.length > 0 && (
+          <div className="mt-2 space-y-1">
+            {bleDevices.map((r) => (
+              <button
+                key={r.device.deviceId}
+                onClick={() => pairDevice(r.device)}
+                className="w-full flex items-center justify-between py-2 px-3 rounded-lg text-sm"
+                style={{ background: "#1a1a1a", color: "#e8e8e8" }}
+              >
+                <span>{r.device.name || r.device.deviceId}</span>
+                <span className="text-xs" style={{ color: "#5ae6de" }}>Pair</span>
+              </button>
+            ))}
+          </div>
+        )}
+        {bleStatus && (
+          <div className="text-xs mt-2" style={{ color: bleStatus.startsWith("Error") ? "#ff6b6b" : "#5ae6de" }}>
+            {bleStatus}
+          </div>
+        )}
       </div>
 
       <button
@@ -823,7 +964,7 @@ function TypeSelect({ onSelect, onCancel }) {
             </button>
           ))}
         </div>
-        <button onClick={onCancel} className="text-sm" style={{ color: "#666" }}>
+        <button onClick={onCancel} className="text-sm px-6 py-3" style={{ color: "#666", minHeight: "44px" }}>
           Cancel
         </button>
       </div>
@@ -851,6 +992,7 @@ export default function App() {
   const watchIdRef = useRef(null);
   const markerRef = useRef(null);
   const routeRef = useRef([]);
+  const bleConnectedRef = useRef(null);
 
   // Tick for recording timer
   useEffect(() => {
@@ -1004,6 +1146,48 @@ export default function App() {
     []
   );
 
+  // BLE HR connection
+  const connectHR = useCallback(async (deviceId) => {
+    try {
+      await BleClient.initialize();
+      await BleClient.connect(deviceId, () => {
+        bleConnectedRef.current = null;
+      });
+      bleConnectedRef.current = deviceId;
+      await BleClient.startNotifications(deviceId, HR_SERVICE, HR_CHARACTERISTIC, (dataView) => {
+        const hr = parseHeartRate(dataView);
+        if (hr > 0 && hr < 250) {
+          setRecording((prev) => {
+            if (!prev) return prev;
+            const hrSamples = [...(prev.hrSamples || []), hr];
+            return {
+              ...prev,
+              currentHR: hr,
+              avgHR: Math.round(hrSamples.reduce((a, b) => a + b, 0) / hrSamples.length),
+              maxHR: Math.max(prev.maxHR || 0, hr),
+              hrSamples,
+            };
+          });
+        }
+      });
+    } catch (err) {
+      console.error("BLE HR connect failed:", err);
+      bleConnectedRef.current = null;
+    }
+  }, []);
+
+  const disconnectHR = useCallback(async () => {
+    const deviceId = bleConnectedRef.current;
+    if (!deviceId) return;
+    try {
+      await BleClient.stopNotifications(deviceId, HR_SERVICE, HR_CHARACTERISTIC);
+      await BleClient.disconnect(deviceId);
+    } catch (err) {
+      console.error("BLE HR disconnect:", err);
+    }
+    bleConnectedRef.current = null;
+  }, []);
+
   const startRecording = useCallback(
     (type) => {
       setTypeSelect(false);
@@ -1017,6 +1201,9 @@ export default function App() {
         distance: 0,
         elevGain: 0,
         currentHR: null,
+        avgHR: null,
+        maxHR: null,
+        hrSamples: [],
         cadence: null,
         calories: null,
         splits: [],
@@ -1024,38 +1211,86 @@ export default function App() {
       setRecording(newRec);
       routeRef.current = [];
 
+      // Keep screen on during recording
+      KeepAwake.keepAwake().catch(() => {});
+
       if (type !== "Yoga") {
-        const id = navigator.geolocation.watchPosition(addPoint, (err) => console.error("GPS:", err), {
-          enableHighAccuracy: true,
-          maximumAge: 2000,
-          timeout: 10000,
-        });
-        watchIdRef.current = id;
+        if (isNative) {
+          BackgroundGeolocation.addWatcher(
+            {
+              backgroundMessage: "Andes is recording your activity",
+              backgroundTitle: "Andes",
+              requestPermissions: true,
+              stale: false,
+              distanceFilter: 5,
+            },
+            (position, error) => {
+              if (error) {
+                console.error("GPS:", error);
+                return;
+              }
+              if (position) {
+                addPoint({
+                  coords: {
+                    latitude: position.latitude,
+                    longitude: position.longitude,
+                    altitude: position.altitude,
+                  },
+                  timestamp: position.time || Date.now(),
+                });
+              }
+            }
+          ).then((id) => {
+            watchIdRef.current = id;
+          });
+        } else {
+          const id = navigator.geolocation.watchPosition(addPoint, (err) => console.error("GPS:", err), {
+            enableHighAccuracy: true,
+            maximumAge: 2000,
+            timeout: 10000,
+          });
+          watchIdRef.current = id;
+        }
+      }
+
+      // Auto-connect BLE HR monitor if paired
+      if (settings?.hrDeviceId) {
+        connectHR(settings.hrDeviceId);
       }
     },
-    [addPoint]
+    [addPoint, settings?.hrDeviceId, connectHR]
   );
 
   const pauseRecording = useCallback(() => {
     setRecording((prev) => {
       if (!prev) return prev;
-      return { ...prev, isPaused: true, pausedAt: (Date.now() - prev.startTime - prev.pausedTime * 1000) / 1000 };
+      return { ...prev, isPaused: true, pausedAt: Date.now() };
     });
   }, []);
 
   const resumeRecording = useCallback(() => {
     setRecording((prev) => {
       if (!prev) return prev;
-      const pauseDuration = (Date.now() - prev.startTime) / 1000 - prev.pausedAt;
-      return { ...prev, isPaused: false, pausedAt: null, pausedTime: prev.pausedTime + pauseDuration * 1000 };
+      const pauseDuration = Date.now() - prev.pausedAt;
+      return { ...prev, isPaused: false, pausedAt: null, pausedTime: prev.pausedTime + pauseDuration };
     });
   }, []);
 
   const stopRecording = useCallback(async () => {
     if (!recording) return;
 
+    // Allow screen to sleep again
+    KeepAwake.allowSleep().catch(() => {});
+
+    // Disconnect BLE HR
+    await disconnectHR();
+
     if (watchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
+      if (isNative) {
+        BackgroundGeolocation.removeWatcher({ id: watchIdRef.current });
+      } else {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
       watchIdRef.current = null;
     }
 
@@ -1065,7 +1300,7 @@ export default function App() {
     }
 
     const elapsed = recording.isPaused
-      ? recording.pausedAt
+      ? (recording.pausedAt - recording.startTime - recording.pausedTime) / 1000
       : (Date.now() - recording.startTime - recording.pausedTime) / 1000;
 
     const id = uuid();
@@ -1083,7 +1318,7 @@ export default function App() {
       })(),
       type: recording.type,
       sport_type: recording.type,
-      start_date_local: new Date(recording.startTime).toISOString(),
+      start_date_local: toLocalISO(new Date(recording.startTime)),
       moving_time: Math.round(elapsed),
       elapsed_time: Math.round((Date.now() - recording.startTime) / 1000),
       distance: Math.round(recording.distance),
@@ -1118,7 +1353,7 @@ export default function App() {
     await kvSet(`an_activity_${id}`, detail);
 
     setRecording(null);
-  }, [recording, activities]);
+  }, [recording, activities, disconnectHR]);
 
   // Open detail
   const openDetail = useCallback(
@@ -1259,7 +1494,7 @@ export default function App() {
   // ─── Main Layout ─────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen" style={{ background: "#0a0a0a", paddingTop: "env(safe-area-inset-top, 0px)" }}>
+    <div className="min-h-screen" style={{ background: "#0a0a0a", paddingTop: "env(safe-area-inset-top, 16px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
         <span className="text-sm font-semibold tracking-widest" style={{ color: "#e8e8e8" }}>
@@ -1268,15 +1503,15 @@ export default function App() {
         <div className="flex gap-2">
           <button
             onClick={() => setTypeSelect(true)}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium"
-            style={{ background: "#5ae6de", color: "#0a0a0a" }}
+            className="px-4 py-2.5 rounded-lg text-xs font-medium"
+            style={{ background: "#5ae6de", color: "#0a0a0a", minHeight: "44px" }}
           >
             record
           </button>
           <button
             onClick={() => setView(view === "settings" ? "today" : "settings")}
-            className="px-2 py-1.5 rounded-lg text-xs"
-            style={{ color: view === "settings" ? "#5ae6de" : "#666" }}
+            className="px-3 py-2.5 rounded-lg text-xs"
+            style={{ color: view === "settings" ? "#5ae6de" : "#666", minHeight: "44px" }}
           >
             {view === "settings" ? "done" : "gear"}
           </button>
@@ -1290,7 +1525,7 @@ export default function App() {
             <button
               key={tab}
               onClick={() => setView(tab)}
-              className="text-sm font-medium pb-1 border-b-2 transition-colors"
+              className="text-sm font-medium py-2 pb-1.5 border-b-2 transition-colors"
               style={{
                 borderColor: view === tab ? "#5ae6de" : "transparent",
                 color: view === tab ? "#e8e8e8" : "#666",
@@ -1332,7 +1567,7 @@ export default function App() {
                 <button
                   key={type}
                   onClick={() => setHistoryFilter(type)}
-                  className="px-3 py-1 rounded-full text-xs font-medium shrink-0 border"
+                  className="px-4 py-2 rounded-full text-xs font-medium shrink-0 border"
                   style={{
                     borderColor: historyFilter === type ? "#5ae6de" : "#2a2a2a",
                     color: historyFilter === type ? "#5ae6de" : "#666",
@@ -1357,8 +1592,8 @@ export default function App() {
                     <button
                       key={a.id}
                       onClick={() => openDetail(a.id)}
-                      className="w-full flex items-center gap-3 py-2 text-left border-b"
-                      style={{ borderColor: "#1a1a1a" }}
+                      className="w-full flex items-center gap-3 py-3 text-left border-b"
+                      style={{ borderColor: "#1a1a1a", minHeight: "44px" }}
                     >
                       <span className="w-6 text-right text-sm tabular-nums" style={{ color: "#666" }}>
                         {day}

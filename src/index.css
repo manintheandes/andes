@@ -11,17 +11,29 @@
   --color-text-dim: #666;
 }
 
+html {
+  height: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   margin: 0;
+  min-height: 100%;
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* Ensure inputs don't zoom on iOS (16px minimum) */
+input, select, textarea {
+  font-size: 16px;
 }
 
 /* Mapbox overrides for dark theme */
