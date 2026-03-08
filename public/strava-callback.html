@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Connecting Strava...</title>
+  <style>
+    body { background: #0a0a0a; color: #666; font-family: Inter, system-ui, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+    .msg { text-align: center; }
+    .msg h2 { color: #e8e8e8; font-size: 18px; margin-bottom: 8px; }
+    .msg p { font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="msg">
+    <h2>Strava Connected</h2>
+    <p>You can close this window.</p>
+  </div>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    if (code && window.opener) {
+      window.opener.postMessage({ stravaCode: code }, window.location.origin);
+      setTimeout(() => window.close(), 1500);
+    } else if (!code) {
+      document.querySelector("h2").textContent = "Authorization Failed";
+      document.querySelector("p").textContent = params.get("error") || "No authorization code received.";
+    }
+  </script>
+</body>
+</html>
