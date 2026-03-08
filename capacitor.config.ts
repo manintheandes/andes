@@ -12,7 +12,7 @@ const config: CapacitorConfig = {
     backgroundColor: "#0a0a0a",
     contentInset: "automatic",
     preferredContentMode: "mobile",
-    scrollEnabled: false,
+    scrollEnabled: true,
     allowsLinkPreview: false,
     overrideUserAgent: "Andes/1.0",
   },

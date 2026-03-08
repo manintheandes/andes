@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
 import { BleClient } from "@capacitor-community/bluetooth-le";
 import { KeepAwake } from "@capacitor-community/keep-awake";
 import { registerPlugin } from "@capacitor/core";
@@ -1064,6 +1065,21 @@ export default function App() {
         source: "route",
         paint: { "line-color": "#5ae6de", "line-width": 3, "line-opacity": 0.8 },
       });
+
+      // Center on user's position immediately
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const { longitude, latitude } = pos.coords;
+          map.flyTo({ center: [longitude, latitude], zoom: 16, duration: 1000 });
+          if (!markerRef.current) {
+            const el = document.createElement("div");
+            el.style.cssText = "width:12px;height:12px;background:#5ae6de;border-radius:50%;border:2px solid #0a0a0a;box-shadow:0 0 8px #5ae6de80";
+            markerRef.current = new mapboxgl.Marker(el).setLngLat([longitude, latitude]).addTo(map);
+          }
+        },
+        () => {},
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
     });
 
     mapRef.current = map;
