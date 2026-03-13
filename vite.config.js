@@ -19,6 +19,8 @@ const apiRoutes = new Map([
   ["/api/integrations/oura/refresh", "/api/integrations/oura/refresh.ts"],
   ["/api/integrations/oura/backfill", "/api/integrations/oura/backfill.ts"],
   ["/api/integrations/strava/import", "/api/integrations/strava/import.ts"],
+  ["/api/integrations/strava/connect", "/api/integrations/strava/connect.ts"],
+  ["/api/integrations/strava/callback", "/api/integrations/strava/callback.ts"],
   ["/api/settings/import-legacy", "/api/settings/import-legacy.ts"],
 ]);
 

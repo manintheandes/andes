@@ -3,8 +3,7 @@ html {
   background: var(--color-bg);
   color: var(--color-text);
   -webkit-text-size-adjust: 100%;
-  overscroll-behavior: none;
-  scroll-behavior: smooth;
+  overscroll-behavior-x: none;
 }
 
 body {
@@ -18,12 +17,10 @@ body {
   text-rendering: optimizeLegibility;
   letter-spacing: -0.003em;
   -webkit-tap-highlight-color: transparent;
-  -webkit-overflow-scrolling: touch;
 }
 
 #root {
   min-height: 100vh;
-  -webkit-overflow-scrolling: touch;
 }
 
 * {
@@ -48,6 +45,16 @@ button:disabled {
   cursor: not-allowed;
 }
 
+/* Global press feedback for touch devices — subtle scale + dim on every button tap.
+   Tailwind active: utilities have higher specificity and override this. */
+@media (pointer: coarse) {
+  button:active:not(:disabled) {
+    transform: scale(0.97);
+    opacity: 0.8;
+    transition: transform 60ms ease, opacity 60ms ease;
+  }
+}
+
 img {
   display: block;
   max-width: 100%;
@@ -58,10 +65,10 @@ img {
 }
 
 .andes-shell {
+  position: relative;
   min-height: 100vh;
   padding-top: max(var(--safe-top), 10px);
-  padding-bottom: max(var(--safe-bottom), 16px);
-  -webkit-overflow-scrolling: touch;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .andes-hairline {

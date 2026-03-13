@@ -61,3 +61,39 @@
     background-position: -200% 0;
   }
 }
+
+@keyframes andes-breathe {
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: scale(0.96);
+  }
+
+  50% {
+    opacity: 0.5;
+    transform: scale(1.04);
+  }
+}
+
+.andes-breathe {
+  animation: andes-breathe 2.4s ease-in-out infinite;
+}
+
+@keyframes andes-saved-flash {
+  0% {
+    opacity: 0;
+  }
+
+  15% {
+    opacity: 1;
+  }
+
+  65% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    pointer-events: none;
+  }
+}

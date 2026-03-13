@@ -145,6 +145,8 @@ export interface RecordingDraft {
   splits: Split[];
   sensorStatus: SensorStatus;
   sensorTimeline: SensorEvent[];
+  movingSeconds: number;
+  recentSpeeds: number[];
   locationBlocked: boolean;
   error: string | null;
 }

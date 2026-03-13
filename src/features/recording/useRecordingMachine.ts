@@ -30,6 +30,7 @@ interface BackgroundGeolocationPlugin {
   ): Promise<string>;
   removeWatcher(options: { id: string | number }): Promise<void>;
   openSettings(): Promise<void>;
+  getStatus(): Promise<{ watcherCount: number; bridgeExists: boolean; watchers: Array<{ callbackId: string; nativeUpdateCount: number; jsDeliveryCount: number; savedCallExists: boolean }> }>;
 }
 
 const BackgroundGeolocation = registerPlugin<BackgroundGeolocationPlugin>("BackgroundGeolocation");
@@ -140,13 +141,15 @@ function draftMovingSeconds(draft: RecordingDraft, fallbackNow = Date.now()) {
     return 0;
   }
   // Only count time between consecutive points with small gaps.
-  // Drift points arrive every 8-15 seconds (GPS wanders 5m). Running points
-  // arrive every 1-3 seconds (you move 5m quickly). 6-second threshold
-  // cleanly separates the two.
+  // With distanceFilter: 5, point intervals depend on speed:
+  //   Running (3 m/s): ~1.7s per point
+  //   Walking (1.3 m/s): ~4s per point
+  //   Slow walk (0.8 m/s): ~6s per point
+  // Gaps > 20s are likely GPS drift or pauses, not real movement.
   let movingMs = 0;
   for (let i = 1; i < draft.points.length; i++) {
     const gap = draft.points[i].time - draft.points[i - 1].time;
-    if (gap > 0 && gap < 6000) {
+    if (gap > 0 && gap < 20000) {
       movingMs += gap;
     }
   }
@@ -361,11 +364,12 @@ function smoothSpeed(previous: number | null, next: number, _confidence: PaceCon
 
 function withLiveMetrics(draft: RecordingDraft, sampleTime = Date.now()): RecordingDraft {
   const liveDistance = Math.max(0, draft.distance + draft.pendingDistance);
-  const movingSeconds = draftMovingSeconds(draft, sampleTime);
+  // Use accumulated movingSeconds from reducer (Doppler-based).
+  // Fall back to gap-threshold for old drafts without movingSeconds.
+  const movingSeconds = draft.movingSeconds > 0
+    ? draft.movingSeconds
+    : draftMovingSeconds(draft, sampleTime);
 
-  // Average pace: total distance / gap-aware moving time.
-  // movingSeconds only counts time between closely-spaced points (< 6s gaps),
-  // so drift time (8-15s gaps) is excluded automatically.
   const averagePaceMps =
     draft.type === "Yoga" || movingSeconds < 10 || liveDistance <= 0
       ? null
@@ -375,15 +379,19 @@ function withLiveMetrics(draft: RecordingDraft, sampleTime = Date.now()): Record
     return { ...draft, liveDistance, averagePaceMps, currentPaceMps: null, paceConfidence: "none" };
   }
 
-  // Simple: show average pace. No GPS Doppler speed (unreliable through plugin).
-  // When sitting still, movingSeconds < 10 → averagePaceMps null → shows "--".
-  // When running, movingSeconds grows → averagePaceMps is real → shows pace.
+  // Current pace from rolling Doppler speed window (median for outlier resistance)
+  let currentPaceMps: number | null = null;
+  if (draft.recentSpeeds.length >= 3) {
+    const sorted = [...draft.recentSpeeds].sort((a, b) => a - b);
+    currentPaceMps = sorted[Math.floor(sorted.length / 2)];
+  }
+
   return {
     ...draft,
     liveDistance,
     averagePaceMps,
-    currentPaceMps: averagePaceMps,
-    paceConfidence: averagePaceMps ? "high" : "none",
+    currentPaceMps: currentPaceMps ?? averagePaceMps,
+    paceConfidence: currentPaceMps ? "high" : averagePaceMps ? "medium" : "none",
   };
 }
 
@@ -434,6 +442,8 @@ function createDraft(sport: SportType): RecordingDraft {
       healthkit: "idle",
     },
     sensorTimeline: [],
+    movingSeconds: 0,
+    recentSpeeds: [],
     locationBlocked: false,
     error: null,
   };
@@ -452,6 +462,8 @@ function reducer(state: RecordingDraft | null, action: Action): RecordingDraft |
         currentPaceMps: action.draft.currentPaceMps ?? null,
         averagePaceMps: action.draft.averagePaceMps ?? null,
         paceConfidence: action.draft.paceConfidence ?? "none",
+        movingSeconds: action.draft.movingSeconds ?? 0,
+        recentSpeeds: [],
         locationBlocked: action.draft.locationBlocked ?? false,
         status: "recovery",
       });
@@ -498,16 +510,52 @@ function reducer(state: RecordingDraft | null, action: Action): RecordingDraft |
       const distance = haversine(lastPoint.lat, lastPoint.lng, action.point.lat, action.point.lng);
       const positionSpeed = distance / Math.max(1, elapsedMs / 1000);
 
-      // Teleport filter only: skip impossibly fast jumps
+      // Teleport filter: skip impossibly fast jumps
       if (positionSpeed > MAX_SPEED_BY_SPORT[state.type]) {
         return withLiveMetrics(state, action.point.time);
       }
 
-      // Real movement — add to track
+      // Jitter filter: skip GPS noise when stationary.
+      // Use GPS Doppler speed (CLLocation.speed) as primary signal when available,
+      // since position-derived speed is unreliable at 1-second intervals (3m jitter
+      // in 1s = 3 m/s calculated, even when standing still).
+      // Fall back to position-derived speed only when Doppler is unavailable (null).
+      const jitter = jitterThreshold(lastPoint, action.point);
+      const stationarySpeed = action.point.speed != null ? action.point.speed : positionSpeed;
+      if (distance <= jitter && stationarySpeed < 0.3) {
+        // Jitter: don't add to points array either, since computeSplits() walks
+        // points with its own haversine sum — storing jitter points would cause
+        // splits to drift ahead of the real distance counter.
+        const recentPoints = appendRecentPoint(state.recentPoints, action.point);
+        return withLiveMetrics({
+          ...state,
+          recentPoints,
+          locationBlocked: false,
+          error: null,
+          sensorStatus: { ...state.sensorStatus, gps: "ready" },
+          sensorTimeline: readyTimeline,
+        }, action.point.time);
+      }
+
+      // Real movement — add to track and distance
       const recentPoints = appendRecentPoint(state.recentPoints, action.point);
       const newPoints = [...state.points, action.point];
       const newDistance = state.distance + distance;
       const newElevGain = state.elevGain + Math.max(0, action.point.alt - lastPoint.alt);
+
+      // Accumulate moving time (capped at 10s to protect against background gaps)
+      const dtSec = Math.min(elapsedMs / 1000, 10);
+      const newMovingSeconds = state.movingSeconds + dtSec;
+
+      // Build rolling speed window for current pace (Doppler-first, ~30 samples)
+      const dopplerSpeed = action.point.speed != null && action.point.speed >= 0
+        ? action.point.speed
+        : positionSpeed;
+      let recentSpeeds = state.recentSpeeds;
+      if (dopplerSpeed > MIN_MOVING_SPEED_MPS[state.type]) {
+        recentSpeeds = [...recentSpeeds, dopplerSpeed];
+        if (recentSpeeds.length > 30) recentSpeeds = recentSpeeds.slice(-30);
+      }
 
       return withLiveMetrics({
         ...state,
@@ -516,6 +564,8 @@ function reducer(state: RecordingDraft | null, action: Action): RecordingDraft |
         recentPoints,
         distance: newDistance,
         elevGain: newElevGain,
+        movingSeconds: newMovingSeconds,
+        recentSpeeds,
         pendingPoints: [],
         pendingDistance: 0,
         pendingDuration: 0,
@@ -548,7 +598,7 @@ function reducer(state: RecordingDraft | null, action: Action): RecordingDraft |
       };
     case "pause":
       if (!state || state.status !== "recording") return state;
-      return withLiveMetrics({ ...state, status: "paused", pausedAt: Date.now(), recentPoints: [], pendingPoints: [], pendingDistance: 0, pendingDuration: 0 });
+      return withLiveMetrics({ ...state, status: "paused", pausedAt: Date.now(), recentPoints: [], recentSpeeds: [], pendingPoints: [], pendingDistance: 0, pendingDuration: 0 });
     case "resume":
       if (!state || state.status !== "paused" || !state.pausedAt) return state;
       return withLiveMetrics({
@@ -557,6 +607,7 @@ function reducer(state: RecordingDraft | null, action: Action): RecordingDraft |
         pausedTime: state.pausedTime + (Date.now() - state.pausedAt),
         pausedAt: null,
         recentPoints: state.points.length ? [state.points[state.points.length - 1]] : [],
+        recentSpeeds: [],
         pendingPoints: [],
         pendingDistance: 0,
         pendingDuration: 0,
@@ -584,15 +635,30 @@ function reducer(state: RecordingDraft | null, action: Action): RecordingDraft |
   }
 }
 
+const ANDES_TRAILS = [
+  "Salkantay", "Inca", "Condor", "Vicuña", "Ausangate", "Lares", "Vilcabamba",
+  "Urubamba", "Colca", "Alpamayo", "Choquequirao", "Huayna", "Parinacota",
+  "Sajama", "Illimani", "Chimborazo", "Cotopaxi", "Aconcagua", "Fitz Roy",
+  "Torres", "Cusco", "Huacachina", "Puna", "Altiplano", "Cordillera",
+  "Pachamama", "Apacheta", "Nevado", "Quebrada", "Llama",
+];
+
+function trailName(startTime: number, type: SportType): string {
+  const hour = new Date(startTime).getHours();
+  const timeOfDay = hour < 5 ? "Night" : hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : hour < 21 ? "Evening" : "Night";
+  const index = (startTime % ANDES_TRAILS.length + Math.floor(startTime / 60000) % ANDES_TRAILS.length) % ANDES_TRAILS.length;
+  return `${ANDES_TRAILS[index]} ${timeOfDay} ${type}`;
+}
+
 function buildPendingWrite(draft: RecordingDraft, bodySnapshot: BodySnapshot | null): PendingWrite {
   const now = Date.now();
-  const movingSeconds = draftMovingSeconds(draft, now);
+  const movingSeconds = draft.movingSeconds > 0 ? draft.movingSeconds : draftMovingSeconds(draft, now);
   const pointCoords = draft.points.map((point) => [point.lat, point.lng] as [number, number]);
   const polyline = pointCoords.length > 1 ? encodePolyline(pointCoords) : null;
   const summary = {
     id: draft.id,
     source: "andes" as const,
-    name: `${new Date(draft.startTime).getHours() < 12 ? "Morning" : new Date(draft.startTime).getHours() < 17 ? "Afternoon" : "Evening"} ${draft.type}`,
+    name: trailName(draft.startTime, draft.type),
     type: draft.type,
     sport_type: draft.type,
     start_date_local: localIso(draft.startTime),
@@ -653,6 +719,8 @@ export function useRecordingMachine({ pairedDeviceId, bodySnapshot = null, onQue
   const foregroundWatchIdRef = useRef<number | null>(null);
   const disconnectHrRef = useRef<null | (() => Promise<void>)>(null);
   const draftRef = useRef<RecordingDraft | null>(null);
+  const gpsCallbackCountRef = useRef(0);
+  const [nativeStatus, setNativeStatus] = useState<{ nativeCount: number; jsCount: number; savedCallExists: boolean } | null>(null);
 
   useEffect(() => {
     draftRef.current = draft;
@@ -680,6 +748,25 @@ export function useRecordingMachine({ pairedDeviceId, bodySnapshot = null, onQue
     const timer = window.setInterval(() => {
       setNow(Date.now());
     }, 1000);
+    return () => window.clearInterval(timer);
+  }, [draft]);
+
+  // Poll native plugin status every 3 seconds while recording
+  useEffect(() => {
+    if (!draft || !isNative) return;
+    const poll = async () => {
+      try {
+        const status = await BackgroundGeolocation.getStatus();
+        const w = status.watchers?.[0];
+        if (w) {
+          setNativeStatus({ nativeCount: w.nativeUpdateCount, jsCount: w.jsDeliveryCount, savedCallExists: w.savedCallExists });
+        }
+      } catch {
+        // ignore
+      }
+    };
+    void poll();
+    const timer = window.setInterval(poll, 3000);
     return () => window.clearInterval(timer);
   }, [draft]);
 
@@ -727,17 +814,20 @@ export function useRecordingMachine({ pairedDeviceId, bodySnapshot = null, onQue
     };
 
     if (sport !== "Yoga") {
-      const distanceFilterBySport =
-        sport === "Ride" ? 8 : 5;
+      const distanceFilterBySport = 0;
       const geolocationOptions: PositionOptions = {
         enableHighAccuracy: true,
         maximumAge: 1000,
         timeout: 8000,
       };
       if (isNative) {
+        gpsCallbackCountRef.current = 0;
         watchIdRef.current = await BackgroundGeolocation.addWatcher(
           { requestPermissions: true, stale: false, distanceFilter: distanceFilterBySport, backgroundTitle: "Alpaca", backgroundMessage: "Alpaca is recording your activity" },
           (position: BackgroundPosition | null, error: { message?: string } | null) => {
+            gpsCallbackCountRef.current++;
+            const n = gpsCallbackCountRef.current;
+            console.log(`[GPS] cb#${n} pos=${!!position} err=${!!error} spd=${position?.speed?.toFixed(2)} acc=${position?.accuracy?.toFixed(1)} t=${Date.now()}`);
             if (error) {
               const message = error.message || "Location access is required to record distance.";
               const denied = /denied|not authorized|permission/i.test(message);
@@ -830,6 +920,8 @@ export function useRecordingMachine({ pairedDeviceId, bodySnapshot = null, onQue
   return {
     draft,
     currentElapsed,
+    gpsCallbackCount: gpsCallbackCountRef.current,
+    nativeStatus,
     start,
     pause,
     resume,

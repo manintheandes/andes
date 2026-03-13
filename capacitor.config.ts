@@ -9,7 +9,7 @@ const config: CapacitorConfig = {
     hostname: "andes.app",
   },
   ios: {
-    backgroundColor: "#0a0a0a",
+    backgroundColor: "#020304",
     contentInset: "automatic",
     preferredContentMode: "mobile",
     scrollEnabled: true,

@@ -8,14 +8,7 @@ interface SurfaceCardProps {
 
 export function SurfaceCard({ children, className = "", style }: SurfaceCardProps) {
   return (
-    <div
-      className={`rounded-[28px] border ${className}`}
-      style={{
-        background: "rgba(255,255,255,0.012)",
-        borderColor: "var(--color-border)",
-        ...style,
-      }}
-    >
+    <div className={`rounded-[28px] ${className}`} style={style}>
       {children}
     </div>
   );

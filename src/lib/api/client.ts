@@ -88,16 +88,20 @@ export async function backfillOuraHistory(token: string, days: string[], timeZon
   }) as Promise<{ processedDays: number; updatedActivities: number; readyDays: number }>;
 }
 
-export async function importStrava(credentials: { clientId: string; clientSecret: string; refreshToken: string }): Promise<{ count: number }> {
+export async function importStrava(credentials: { clientId?: string; clientSecret?: string; refreshToken: string }): Promise<{ count: number }> {
+  const headers: Record<string, string> = {};
+  if (credentials.refreshToken) headers["x-strava-refresh-token"] = credentials.refreshToken;
+  if (credentials.clientId) headers["x-strava-client-id"] = credentials.clientId;
+  if (credentials.clientSecret) headers["x-strava-client-secret"] = credentials.clientSecret;
   return request("/api/integrations/strava/import", {
     method: "POST",
-    headers: {
-      "x-strava-client-id": credentials.clientId,
-      "x-strava-client-secret": credentials.clientSecret,
-      "x-strava-refresh-token": credentials.refreshToken,
-    },
+    headers,
     body: JSON.stringify({}),
   }) as Promise<{ count: number }>;
+}
+
+export function stravaConnectUrl(): string {
+  return `${apiBase()}/api/integrations/strava/connect`;
 }
 
 export async function repairLibrary(): Promise<{ repairedCount: number }> {

@@ -3,7 +3,7 @@ import type { ActivitySummary, CoachComment } from "../../src/types";
 import type { StoredActivityDetail } from "./activities.js";
 import { envValue } from "./env.js";
 
-export const COACH_PROMPT_VERSION = "alpaca-coach-v3";
+export const COACH_PROMPT_VERSION = "alpaca-coach-v4";
 
 function round(value: number, digits = 2): number {
   const factor = 10 ** digits;
@@ -130,23 +130,25 @@ function parseCoachPayload(rawText: string): { headline: string; summary: string
     caution?: string | null;
   };
 
-  if (typeof parsed.headline !== "string" || typeof parsed.summary !== "string" || !Array.isArray(parsed.bullets) || parsed.bullets.length !== 2) {
-    throw new Error("OpenAI comment payload was invalid.");
+  if (typeof parsed.headline !== "string" || typeof parsed.summary !== "string") {
+    throw new Error("Coach comment payload was invalid.");
   }
   const headline = normalizeCoachText(parsed.headline).slice(0, 120);
-  const summary = normalizeCoachText(parsed.summary).slice(0, 420);
-  const bullets = parsed.bullets.map((item) => (typeof item === "string" ? sanitizeBullet(item) : "")).slice(0, 2) as [string, string];
+  const summary = normalizeCoachText(parsed.summary).slice(0, 600);
+
+  if (!headline || !summary) {
+    throw new Error("Coach comment headline or summary was empty.");
+  }
+  if (hasMetaLeak(headline) || hasMetaLeak(summary)) {
+    throw new Error("Coach comment contained invalid meta text.");
+  }
+
+  // Backwards-compatible: extract bullets if present, otherwise default to empty
+  const bullets: [string, string] = Array.isArray(parsed.bullets) && parsed.bullets.length >= 2
+    ? [sanitizeBullet(String(parsed.bullets[0])), sanitizeBullet(String(parsed.bullets[1]))]
+    : ["", ""];
   const caution = typeof parsed.caution === "string" ? normalizeCoachText(parsed.caution).slice(0, 160) : null;
 
-  if (!headline || !summary || !bullets[0] || !bullets[1]) {
-    throw new Error("OpenAI comment bullets were invalid.");
-  }
-  if (bullets.some((bullet) => bullet.length > 120 || bullet.includes('","') || hasMetaLeak(bullet))) {
-    throw new Error("OpenAI comment bullets contained invalid meta text.");
-  }
-  if (hasMetaLeak(headline) || hasMetaLeak(summary) || (caution ? hasMetaLeak(caution) : false)) {
-    throw new Error("OpenAI comment contained invalid meta text.");
-  }
   return {
     headline,
     summary,
@@ -158,11 +160,7 @@ function parseCoachPayload(rawText: string): { headline: string; summary: string
 export function isValidCoachCommentContent(comment: CoachComment | null | undefined): comment is CoachComment {
   if (!comment) return false;
   if (!isUsableCoachField(normalizeCoachText(comment.headline), 120)) return false;
-  if (!isUsableCoachField(normalizeCoachText(comment.summary), 420)) return false;
-  if (!Array.isArray(comment.bullets) || comment.bullets.length !== 2) return false;
-  const normalizedBullets = comment.bullets.map((bullet) => sanitizeBullet(String(bullet ?? "")));
-  if (normalizedBullets.some((bullet) => !isUsableCoachField(bullet, 120))) return false;
-  if (comment.caution && !isUsableCoachField(normalizeCoachText(comment.caution), 160)) return false;
+  if (!isUsableCoachField(normalizeCoachText(comment.summary), 600)) return false;
   return true;
 }
 
@@ -184,7 +182,7 @@ export async function generateCoachComment(summary: ActivitySummary, detail: Sto
     body: JSON.stringify({
       model,
       max_tokens: 1024,
-      system: "You are Alpaca Coach. Return strict JSON only — no markdown fences, no explanation, just the JSON object. Be restrained, observant, and useful. Never diagnose. Never invent body or HR data when it is missing. Use imperial units only: miles, minutes per mile, miles per hour, and feet. Never mention kilometers, meters, kph, or minutes per kilometer. Keep summary under 80 words. Each bullet must be a standalone sentence under 90 characters. Never mention prompts, schemas, developers, JSON, or your own instructions. JSON schema: {\"headline\": string, \"summary\": string, \"bullets\": [string, string], \"caution\": string | null}",
+      system: "You are Alpaca Coach. Return strict JSON only — no markdown fences, no explanation, just the JSON object. Be restrained, observant, and useful. Never diagnose. Never invent body or HR data when it is missing. Use imperial units only: miles, minutes per mile, miles per hour, and feet. Never mention kilometers, meters, kph, or minutes per kilometer. Write summary as a single flowing paragraph under 150 words — weave activity insights, body/sleep context, and any cautions together naturally. No bullet points. Never mention prompts, schemas, developers, JSON, or your own instructions. JSON schema: {\"headline\": string, \"summary\": string}",
       messages: [
         {
           role: "user",

@@ -28,7 +28,7 @@ export function BottomActionBar({ actions }: BottomActionBarProps) {
             key={action.label}
             onClick={action.onPress}
             disabled={action.disabled}
-            className="flex flex-col items-center justify-center rounded-full border transition-transform duration-200"
+            className="flex flex-col items-center justify-center rounded-full border active:scale-[0.88] active:brightness-90 transition-all duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
             style={{
               width: palette.size,
               height: palette.size,

@@ -1,6 +1,7 @@
 import type { ActivitySummary } from "../../../src/types";
 import { mergeSummary } from "../../_lib/activities.js";
 import { requireAuth } from "../../_lib/auth.js";
+import { envValue } from "../../_lib/env.js";
 import { allowCors, header, type ApiRequest, type ApiResponse } from "../../_lib/http.js";
 import { kvGet, kvSet } from "../../_lib/kv.js";
 import { importStravaActivities } from "../../_lib/strava.js";
@@ -8,9 +9,12 @@ import { importStravaActivities } from "../../_lib/strava.js";
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (allowCors(req, res)) return;
   if (!requireAuth(req, res)) return;
-  const clientId = header(req, "x-strava-client-id");
-  const clientSecret = header(req, "x-strava-client-secret");
+
+  // Accept credentials from headers (manual entry) or fall back to server env (OAuth flow).
+  const clientId = header(req, "x-strava-client-id") || envValue("STRAVA_CLIENT_ID");
+  const clientSecret = header(req, "x-strava-client-secret") || envValue("STRAVA_CLIENT_SECRET");
   const refreshToken = header(req, "x-strava-refresh-token");
+
   if (!clientId || !clientSecret || !refreshToken) {
     res.status(400).json({ error: "Missing Strava credentials" });
     return;

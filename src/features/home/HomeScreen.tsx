@@ -2,13 +2,46 @@ interface HomeScreenProps {
   onRecord: () => void;
   onOpenRecords: () => void;
   onOpenSleep: () => void;
-  onOpenCoach: () => void;
 }
 
-function TrailDivider({ className }: { className?: string }) {
+// Topo divider variants — each page gets its own terrain character
+const TOPO_PATHS: Record<string, string[]> = {
+  // Default: gentle S-curve ridge
+  ridge: ["M 0,3 C 50,1 100,5 150,3 C 200,1 250,5 300,3"],
+  // Sleep: slow rolling wave, like breathing
+  wave: [
+    "M 0,3 C 40,1.5 80,4.5 120,3 C 160,1.5 200,4.5 240,3 C 270,1.8 300,3.5 300,3",
+    "M 0,3.4 C 60,4.8 130,1.6 200,3.6 C 250,5 300,2.4 300,3.4",
+  ],
+  // Recording: sharp sawtooth ridge, like heartbeat peaks
+  peak: [
+    "M 0,4 C 20,4 35,1 50,1 C 65,1 70,5 85,5 C 100,5 115,1 130,1 C 145,1 150,5 165,5 C 180,5 195,1 210,1 C 225,1 240,5 255,5 C 270,5 285,2 300,3",
+  ],
+  // Activity detail: long flowing contour, like a trail on a map
+  contour: [
+    "M 0,2 C 30,1 60,4 100,3.5 C 140,3 180,1.5 220,2.5 C 260,3.5 290,2 300,2.5",
+    "M 0,4 C 50,4.5 100,2.5 150,3 C 200,3.5 250,2 300,3.5",
+  ],
+  // Settings: minimal, technical — nearly flat with slight inflection
+  drift: ["M 0,3 C 100,2.6 200,3.4 300,3"],
+  // History: stacked strata layers
+  strata: [
+    "M 0,2 C 80,1.5 160,2.5 240,2 C 280,1.8 300,2.2 300,2",
+    "M 0,4 C 60,4.5 140,3.5 220,4.2 C 270,4.6 300,3.8 300,4",
+  ],
+  // Coach: organic brushstroke, calligraphic
+  brush: [
+    "M 0,3 C 20,1 60,1 100,2.5 C 140,4 180,5 220,3.5 C 260,2 290,3 300,3",
+  ],
+};
+
+function TrailDivider({ variant = "ridge", className }: { variant?: keyof typeof TOPO_PATHS; className?: string }) {
+  const paths = TOPO_PATHS[variant] ?? TOPO_PATHS.ridge;
   return (
     <svg width="100%" height="6" preserveAspectRatio="none" viewBox="0 0 300 6" className={className}>
-      <path d="M 0,3 C 50,1 100,5 150,3 C 200,1 250,5 300,3" stroke="rgba(90,230,222,0.15)" strokeWidth="1" fill="none" />
+      {paths.map((d, i) => (
+        <path key={i} d={d} stroke="rgba(90,230,222,0.15)" strokeWidth={i === 0 ? "1" : "0.5"} fill="none" opacity={i === 0 ? 1 : 0.5} />
+      ))}
     </svg>
   );
 }
@@ -140,6 +173,15 @@ export function HeartIcon({ size = 20, color = T }: { size?: number; color?: str
   );
 }
 
+export function AppleIcon({ size = 20, color = T }: { size?: number; color?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" width={size} height={size}>
+      <path d="M 12,4 C 12,2 14,1 15,2" stroke={color} strokeWidth="0.5" strokeLinecap="round" fill="none" />
+      <path d="M 12,6 C 8,6 4,10 4,15 C 4,19 7,22 9,22 C 10,22 11,21 12,21 C 13,21 14,22 15,22 C 17,22 20,19 20,15 C 20,10 16,6 12,6" stroke={color} strokeWidth="0.5" strokeLinecap="round" fill="none" />
+    </svg>
+  );
+}
+
 export function CloseIcon({ size = 20, color = T }: { size?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
@@ -172,6 +214,14 @@ export function StopIcon({ size = 20, color = T }: { size?: number; color?: stri
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
       <path d="M 10,10 L 30,10 L 30,30 L 10,30 Z" stroke={color} strokeWidth="0.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </svg>
+  );
+}
+
+export function RecordIcon({ size = 20, color = T }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
+      <circle cx="20" cy="20" r="10" fill={color} />
     </svg>
   );
 }
@@ -213,58 +263,68 @@ export function SensorIcon({ size = 20, color = T }: { size?: number; color?: st
   );
 }
 
+export function ClockIcon({ size = 20, color = T }: { size?: number; color?: string }) {
+  return (
+    <svg viewBox="0 0 40 40" fill="none" width={size} height={size}>
+      <circle cx="20" cy="20" r="10" stroke={color} strokeWidth="0.5" fill="none" />
+      <path d="M 20,14 L 20,20 L 25,23" stroke={color} strokeWidth="0.5" strokeLinecap="round" fill="none" />
+    </svg>
+  );
+}
+
+export function RefreshIcon({ size = 20, color = T }: { size?: number; color?: string }) {
+  return (
+    <svg viewBox="0 0 40 40" fill="none" width={size} height={size}>
+      <path d="M 28,12 C 24,8 18,7 14,10 C 8,14 8,24 14,30 C 20,36 30,34 33,28" stroke={color} strokeWidth="0.5" strokeLinecap="round" fill="none" />
+      <path d="M 28,12 L 32,9" stroke={color} strokeWidth="0.5" strokeLinecap="round" fill="none" />
+      <path d="M 28,12 L 25,8" stroke={color} strokeWidth="0.5" strokeLinecap="round" fill="none" />
+    </svg>
+  );
+}
+
+export function ExportIcon({ size = 20, color = T }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
+      <path d="M 20,8 L 20,26" stroke={color} strokeWidth="0.5" strokeLinecap="round" fill="none" />
+      <path d="M 14,14 L 20,8 L 26,14" stroke={color} strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <path d="M 10,22 L 10,32 L 30,32 L 30,22" stroke={color} strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </svg>
+  );
+}
+
 export { TrailDivider };
 
-export function HomeScreen({ onRecord, onOpenRecords, onOpenSleep, onOpenCoach }: HomeScreenProps) {
+export function HomeScreen({ onRecord, onOpenRecords, onOpenSleep }: HomeScreenProps) {
   return (
-    <div style={{ position: "relative" }}>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gridTemplateRows: "1fr 1fr",
-          aspectRatio: "1",
-          maxHeight: 380,
-          position: "relative",
-        }}
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "2rem",
+        height: "calc(100dvh - max(var(--safe-top), 10px) - max(var(--safe-bottom), 16px))",
+        position: "relative",
+      }}
+    >
+      <button
+        onClick={onRecord}
+        className="flex items-center justify-center transition-transform active:scale-[0.92]"
       >
-        {/* Trail cross-hairs */}
-        <svg
-          style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
-          viewBox="0 0 280 280"
-          preserveAspectRatio="none"
-        >
-          <path d="M 0,139 C 40,132 85,148 140,137 C 195,126 240,150 280,139" stroke="rgba(255,255,255,0.12)" strokeWidth="1" fill="none" />
-          <path d="M 0,143 C 45,150 95,132 145,143 C 195,154 245,130 280,143" stroke="rgba(255,255,255,0.07)" strokeWidth="1" fill="none" />
-          <path d="M 139,0 C 132,40 148,85 137,140 C 126,195 150,240 139,280" stroke="rgba(255,255,255,0.12)" strokeWidth="1" fill="none" />
-          <path d="M 143,0 C 150,45 132,95 143,140 C 154,195 130,240 143,280" stroke="rgba(255,255,255,0.07)" strokeWidth="1" fill="none" />
-        </svg>
-
-        <button
-          onClick={onRecord}
-          className="flex items-center justify-center transition-transform active:scale-[0.95]"
-        >
-          <AlpacaIcon size={84} />
-        </button>
-        <button
-          onClick={onOpenRecords}
-          className="flex items-center justify-center transition-transform active:scale-[0.95]"
-        >
-          <HistoryIcon size={84} />
-        </button>
-        <button
-          onClick={onOpenSleep}
-          className="flex items-center justify-center transition-transform active:scale-[0.95]"
-        >
-          <SleepIcon size={84} />
-        </button>
-        <button
-          onClick={onOpenCoach}
-          className="flex items-center justify-center transition-transform active:scale-[0.95]"
-        >
-          <CoachIcon size={84} />
-        </button>
-      </div>
+        <AlpacaIcon size={140} />
+      </button>
+      <button
+        onClick={onOpenRecords}
+        className="flex items-center justify-center transition-transform active:scale-[0.92]"
+      >
+        <HistoryIcon size={140} />
+      </button>
+      <button
+        onClick={onOpenSleep}
+        className="flex items-center justify-center transition-transform active:scale-[0.92]"
+      >
+        <SleepIcon size={140} />
+      </button>
     </div>
   );
 }

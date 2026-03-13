@@ -2,12 +2,16 @@ import { useEffect, useRef } from "react";
 import type { RecordingDraft } from "../../types";
 import { formatDistance, formatDuration, formatPace, formatSpeed } from "../../lib/utils/format";
 import { BottomActionBar } from "../../ui/BottomActionBar";
-import { AlpacaIcon, MapIcon, GpsIcon, HeartIcon, TrailDivider, PauseIcon, PlayIcon, StopIcon, CheckIcon, CloseIcon, SettingsIcon } from "../home/HomeScreen";
+import { AlpacaIcon, BackIcon, MapIcon, GpsIcon, HeartIcon, TrailDivider, PauseIcon, PlayIcon, StopIcon, RecordIcon, CheckIcon, CloseIcon, SettingsIcon } from "../home/HomeScreen";
 
 interface RecordingScreenProps {
-  draft: RecordingDraft;
+  draft: RecordingDraft | null;
   elapsedSeconds: number;
   mapboxToken: string;
+  gpsCallbackCount?: number;
+  nativeStatus?: { nativeCount: number; jsCount: number; savedCallExists: boolean } | null;
+  onStart?: () => void;
+  onCancel?: () => void;
   onPause: () => void;
   onResume: () => void;
   onStop: () => void;
@@ -44,7 +48,34 @@ function InlineMap({ token, points }: { token: string; points: { lat: number; ln
           data: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: points.map((p) => [p.lng, p.lat]) } },
         });
         map.addLayer({ id: "route", type: "line", source: "route", paint: { "line-color": "#5ae6de", "line-width": 3, "line-opacity": 0.9 } });
-        const m = new mapboxgl.Marker({ color: "#5ae6de", scale: 0.6 }).setLngLat([points[points.length - 1].lng, points[points.length - 1].lat]).addTo(map);
+        const el = document.createElement("div");
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("viewBox", "0 0 40 40");
+        svg.setAttribute("width", "28");
+        svg.setAttribute("height", "28");
+        svg.setAttribute("fill", "none");
+        const paths = [
+          "M 10,2 C 8,6 7,12 8,16 C 16,12 26,12 32,16",
+          "M 12,16 C 10,24 8,30 6,36",
+          "M 26,14 C 28,22 30,28 31,36",
+        ];
+        for (const d of paths) {
+          const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          p.setAttribute("d", d);
+          p.setAttribute("stroke", "#5ae6de");
+          p.setAttribute("stroke-width", "0.6");
+          p.setAttribute("stroke-linecap", "round");
+          p.setAttribute("fill", "none");
+          svg.appendChild(p);
+        }
+        const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        c.setAttribute("cx", "8.5");
+        c.setAttribute("cy", "6");
+        c.setAttribute("r", "0.5");
+        c.setAttribute("fill", "#5ae6de");
+        svg.appendChild(c);
+        el.appendChild(svg);
+        const m = new mapboxgl.Marker({ element: el, anchor: "bottom" }).setLngLat([points[points.length - 1].lng, points[points.length - 1].lat]).addTo(map);
         markerRef.current = m;
       });
     })();
@@ -69,7 +100,51 @@ function InlineMap({ token, points }: { token: string; points: { lat: number; ln
   return <div ref={containerRef} className="mx-4 mt-4 flex-1 min-h-[180px] overflow-hidden rounded-2xl" style={{ opacity: 0.85 }} />;
 }
 
-export function RecordingScreen({ draft, elapsedSeconds, mapboxToken, onPause, onResume, onStop, onDiscard, onOpenMap, onOpenLocationSettings }: RecordingScreenProps) {
+export function RecordingScreen({ draft, elapsedSeconds, mapboxToken, gpsCallbackCount = 0, nativeStatus, onStart, onCancel, onPause, onResume, onStop, onDiscard, onOpenMap, onOpenLocationSettings }: RecordingScreenProps) {
+  // Pre-recording ready state: user sees the screen but hasn't tapped Record yet
+  if (!draft) {
+    return (
+      <div className="fixed inset-0 z-40 flex flex-col" style={{ background: "var(--color-bg)" }}>
+        <svg style={{ position: "absolute", inset: 0, pointerEvents: "none" }} viewBox="0 0 320 600" preserveAspectRatio="none">
+          <path d="M 0,400 C 80,390 160,410 240,398 C 300,388 320,402 320,400" stroke="rgba(255,255,255,0.08)" strokeWidth="1" fill="none" />
+        </svg>
+        <div className="flex-1 min-h-0 relative z-[1]">
+          <div className="flex items-center justify-between px-5 pt-4 pb-2">
+            <button onClick={onCancel} className="transition-opacity active:opacity-50" aria-label="Back">
+              <BackIcon size={24} />
+            </button>
+          </div>
+          <div className="px-5 pt-6" style={{ opacity: 0.3 }}>
+            <div className="flex items-baseline justify-between">
+              <div className="tabular-nums" style={{ fontSize: "4rem", fontWeight: 200, letterSpacing: "-0.04em", lineHeight: 0.95, color: "var(--color-text)" }}>0:00</div>
+              <div style={{ fontSize: "0.7rem", color: "#444", letterSpacing: "0.12em", textTransform: "uppercase" }}>time</div>
+            </div>
+            <TrailDivider variant="peak" />
+            <div className="flex items-baseline justify-between">
+              <div className="tabular-nums" style={{ fontSize: "4rem", fontWeight: 200, letterSpacing: "-0.04em", lineHeight: 0.95, color: "var(--color-text)" }}>--</div>
+              <div style={{ fontSize: "0.7rem", color: "#444", letterSpacing: "0.12em", textTransform: "uppercase" }}>mi</div>
+            </div>
+            <TrailDivider variant="peak" />
+            <div className="flex items-baseline justify-between">
+              <div className="tabular-nums" style={{ fontSize: "4rem", fontWeight: 200, letterSpacing: "-0.04em", lineHeight: 0.95, color: "var(--color-text)" }}>--</div>
+              <div style={{ fontSize: "0.7rem", color: "#444", letterSpacing: "0.12em", textTransform: "uppercase" }}>/mi</div>
+            </div>
+            <TrailDivider variant="peak" />
+            <div className="flex items-baseline justify-between">
+              <div className="tabular-nums" style={{ fontSize: "4rem", fontWeight: 200, letterSpacing: "-0.04em", lineHeight: 0.95, color: "var(--color-text-soft)" }}>--</div>
+              <div style={{ fontSize: "0.7rem", color: "#444", letterSpacing: "0.12em", textTransform: "uppercase" }}>bpm</div>
+            </div>
+          </div>
+        </div>
+        <div className="shrink-0 px-5 pb-[max(var(--safe-bottom),16px)] pt-4 relative z-[1]">
+          <BottomActionBar actions={[
+            { label: "Record", icon: <RecordIcon size={28} color="#081314" />, onPress: onStart ?? (() => {}), tone: "primary" },
+          ]} />
+        </div>
+      </div>
+    );
+  }
+
   const moving = draft.type !== "Yoga";
   const isRecovery = draft.status === "recovery";
   const isPausedState = draft.status === "paused" || isRecovery;
@@ -103,7 +178,7 @@ export function RecordingScreen({ draft, elapsedSeconds, mapboxToken, onPause, o
       </svg>
 
       <div className="flex-1 min-h-0 overflow-y-auto relative z-[1]">
-        {/* Top bar: alpaca icon left, Map icon center, sensor icon right */}
+        {/* Top bar: alpaca left, map right */}
         <div className="flex items-center justify-between px-5 pt-4 pb-2">
           <AlpacaIcon size={24} />
           <button
@@ -112,92 +187,36 @@ export function RecordingScreen({ draft, elapsedSeconds, mapboxToken, onPause, o
           >
             <MapIcon size={22} color={mapActive ? "#5ae6de" : "rgba(90,230,222,0.3)"} />
           </button>
-          <div className="inline-flex items-center gap-1.5">
-            {isHrMode ? (
-              <HeartIcon size={20} color={sensorColor} />
-            ) : (
-              <GpsIcon size={20} color={sensorColor} />
-            )}
-            <span
-              aria-hidden="true"
-              style={{
-                width: "0.38rem",
-                height: "0.38rem",
-                borderRadius: "999px",
-                background: sensorActive ? "var(--color-accent)" : "transparent",
-              }}
-            />
-          </div>
         </div>
 
-        {/* HR display if available */}
-        {draft.currentHR ? (
-          <div className="text-right px-5" style={{ color: "var(--color-accent)", fontSize: "1.2rem", fontWeight: 200 }}>
-            {draft.currentHR} <span style={{ fontSize: "0.55rem", color: "rgba(90,230,222,0.5)", letterSpacing: "0.06em", textTransform: "uppercase" }}>bpm</span>
+        {/* Stats: time, miles, heart rate — stacked rows with topo dividers */}
+        <div className="px-5 pt-6" style={dimStyle}>
+          <div className="flex items-baseline justify-between">
+            <div className="tabular-nums" style={{ fontSize: "4rem", fontWeight: 200, letterSpacing: "-0.04em", lineHeight: 0.95, color: "var(--color-text)" }}>
+              {formatDuration(elapsedSeconds)}
+            </div>
+            <div style={{ fontSize: "0.7rem", color: "#444", letterSpacing: "0.12em", textTransform: "uppercase" }}>time</div>
           </div>
-        ) : null}
-
-        {/* Status icon */}
-        {isPausedState ? (
-          <div className="flex justify-center px-5 pt-4">
-            {isRecovery ? <PlayIcon size={32} color="rgba(90,230,222,0.5)" /> : <PauseIcon size={32} color="rgba(90,230,222,0.5)" />}
+          <TrailDivider variant="peak" />
+          <div className="flex items-baseline justify-between">
+            <div className="tabular-nums" style={{ fontSize: "4rem", fontWeight: 200, letterSpacing: "-0.04em", lineHeight: 0.95, color: "var(--color-text)" }}>
+              {moving ? formatDistance(draft.liveDistance || draft.distance) : "--"}
+            </div>
+            <div style={{ fontSize: "0.7rem", color: "#444", letterSpacing: "0.12em", textTransform: "uppercase" }}>mi</div>
           </div>
-        ) : draft.status === "starting" ? (
-          <div className="flex justify-center px-5 pt-4">
-            <GpsIcon size={32} color={draft.sensorStatus.gps === "ready" ? "#5ae6de" : "rgba(90,230,222,0.3)"} />
+          <TrailDivider variant="peak" />
+          <div className="flex items-baseline justify-between">
+            <div className="tabular-nums" style={{ fontSize: "4rem", fontWeight: 200, letterSpacing: "-0.04em", lineHeight: 0.95, color: "var(--color-text)" }}>
+              {moving ? paceSpeed : "--"}
+            </div>
+            <div style={{ fontSize: "0.7rem", color: "#444", letterSpacing: "0.12em", textTransform: "uppercase" }}>{paceUnit}</div>
           </div>
-        ) : null}
-
-        {/* Primary stat grid: time, distance, pace */}
-        <div className="px-5 pt-8">
-          <div className="grid grid-cols-3 gap-4 text-center" style={dimStyle}>
-            <div>
-              <div className="tabular-nums" style={{ fontSize: "1.6rem", fontWeight: 200, letterSpacing: "-0.04em", color: "var(--color-text)" }}>
-                {formatDuration(elapsedSeconds)}
-              </div>
-              <div style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase", marginTop: 2 }}>time</div>
+          <TrailDivider variant="peak" />
+          <div className="flex items-baseline justify-between">
+            <div className="tabular-nums" style={{ fontSize: "4rem", fontWeight: 200, letterSpacing: "-0.04em", lineHeight: 0.95, color: draft.currentHR ? "var(--color-accent)" : "var(--color-text-soft)" }}>
+              {draft.currentHR ?? "--"}
             </div>
-            <div>
-              <div className="tabular-nums" style={{ fontSize: "1.6rem", fontWeight: 200, letterSpacing: "-0.04em", color: "var(--color-text)" }}>
-                {moving ? formatDistance(draft.liveDistance || draft.distance) : "--"}
-              </div>
-              <div style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase", marginTop: 2 }}>mi</div>
-            </div>
-            <div>
-              <div className="tabular-nums" style={{ fontSize: "1.6rem", fontWeight: 200, letterSpacing: "-0.04em", color: "var(--color-text)" }}>
-                {moving ? paceSpeed : "--"}
-              </div>
-              <div style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase", marginTop: 2 }}>{paceUnit}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Trail divider */}
-        <div className="px-5 py-4">
-          <TrailDivider />
-        </div>
-
-        {/* Secondary stats: heart, elev, confidence */}
-        <div className="px-5">
-          <div className="grid grid-cols-3 gap-4 text-center" style={dimStyle}>
-            <div>
-              <div className="tabular-nums" style={{ fontSize: "1.1rem", fontWeight: 200, letterSpacing: "-0.04em", color: draft.currentHR ? "var(--color-accent)" : "var(--color-text-soft)" }}>
-                {draft.currentHR ?? "--"}
-              </div>
-              <div style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase", marginTop: 2 }}>bpm</div>
-            </div>
-            <div>
-              <div className="tabular-nums" style={{ fontSize: "1.1rem", fontWeight: 200, letterSpacing: "-0.04em", color: "var(--color-text-soft)" }}>
-                {Math.round(draft.elevGain)}
-              </div>
-              <div style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase", marginTop: 2 }}>ft</div>
-            </div>
-            <div>
-              <div className="tabular-nums" style={{ fontSize: "1.1rem", fontWeight: 200, letterSpacing: "-0.04em", color: "var(--color-text-soft)" }}>
-                {draft.points.length}
-              </div>
-              <div style={{ fontSize: "0.55rem", color: "#444", letterSpacing: "0.06em", textTransform: "uppercase", marginTop: 2 }}>pts</div>
-            </div>
+            <div style={{ fontSize: "0.7rem", color: "#444", letterSpacing: "0.12em", textTransform: "uppercase" }}>bpm</div>
           </div>
         </div>
 
@@ -208,28 +227,28 @@ export function RecordingScreen({ draft, elapsedSeconds, mapboxToken, onPause, o
       {/* Bottom actions */}
       <div className="shrink-0 px-5 pb-[max(var(--safe-bottom),16px)] pt-4 relative z-[1]">
         {draft.error ? <div className="text-center mb-3" style={{ color: "var(--color-text-soft)", fontSize: "0.85rem" }}>{draft.error}</div> : null}
+        <div className="text-center mb-2" style={{ color: "#444", fontSize: "0.65rem", fontFamily: "monospace" }}>
+          cb:{gpsCallbackCount} pts:{draft.points.length} d:{Math.round(draft.distance)}m spd:{(draft.currentPaceMps ?? 0).toFixed(1)} status:{draft.status}
+        </div>
+        {nativeStatus ? (
+          <div className="text-center mb-2" style={{ color: nativeStatus.savedCallExists ? "#5ae6de" : "#f44", fontSize: "0.65rem", fontFamily: "monospace" }}>
+            native:{nativeStatus.nativeCount} js:{nativeStatus.jsCount} saved:{nativeStatus.savedCallExists ? "Y" : "N"}
+          </div>
+        ) : null}
         <BottomActionBar
           actions={
             draft.locationBlocked
               ? [
                   { label: "Settings", icon: <SettingsIcon size={24} color="#081314" />, onPress: onOpenLocationSettings, tone: "primary" },
-                  { label: "Discard", icon: <CloseIcon size={18} color="var(--color-text-soft)" />, onPress: onDiscard, tone: "ghost" },
                 ]
-              : isRecovery
+              : isPausedState
               ? [
-                  { label: "Resume", icon: <PlayIcon size={24} color="#081314" />, onPress: onResume, tone: "primary" },
-                  { label: "Save", icon: <CheckIcon size={22} color="var(--color-text)" />, onPress: onStop, tone: "secondary" },
-                  { label: "Discard", icon: <CloseIcon size={18} color="var(--color-text-soft)" />, onPress: onDiscard, tone: "ghost" },
-                ]
-              : draft.status === "paused"
-              ? [
-                  { label: "Resume", icon: <PlayIcon size={24} color="#081314" />, onPress: onResume, tone: "primary" },
-                  { label: "Save", icon: <CheckIcon size={22} color="var(--color-text)" />, onPress: onStop, tone: "secondary" },
-                  { label: "Discard", icon: <CloseIcon size={18} color="var(--color-text-soft)" />, onPress: onDiscard, tone: "ghost" },
+                  { label: "Record", icon: <RecordIcon size={28} color="#081314" />, onPress: onResume, tone: "primary" },
+                  { label: "Stop", icon: <StopIcon size={26} color="#081314" />, onPress: onStop, tone: "primary" },
                 ]
               : [
-                  { label: "Pause", icon: <PauseIcon size={22} color="var(--color-text)" />, onPress: onPause, tone: "secondary" },
-                  { label: "Stop", icon: <StopIcon size={24} color="#081314" />, onPress: onStop, tone: "primary", disabled: draft.status === "saving" },
+                  { label: "Record", icon: <RecordIcon size={28} color="#081314" />, onPress: onPause, tone: "primary" },
+                  { label: "Stop", icon: <StopIcon size={26} color="#081314" />, onPress: onStop, tone: "primary", disabled: draft.status === "saving" },
                 ]
           }
         />
