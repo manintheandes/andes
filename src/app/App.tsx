@@ -1,9 +1,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { HomeScreen, AlpacaIcon, HistoryIcon, SleepIcon, CoachIcon, SettingsIcon, TrailDivider, BackIcon } from "../features/home/HomeScreen";
+import { HomeScreen, AlpacaIcon, CheckIcon, HistoryIcon, SleepIcon, CoachIcon, SettingsIcon, TrailDivider, BackIcon } from "../features/home/HomeScreen";
+
 import { SplashScreen } from "../features/home/SplashScreen";
 import { RecordingScreen } from "../features/recording/RecordingScreen";
-import { backfillComments, backfillOuraHistory, commentActivity, deleteActivity, fetchActivity, fetchBootstrap, importLegacySettings, importStrava, logout, refreshOura, repairLibrary, saveActivity } from "../lib/api/client";
+import { backfillComments, backfillOuraHistory, commentActivity, deleteActivity, fetchActivity, fetchBootstrap, importLegacySettings, importStrava, logout, refreshOura, repairLibrary, saveActivity, stravaConnectUrl } from "../lib/api/client";
 import { scanHeartRateDevices, testHeartRateDevice } from "../lib/native/coros";
 import { getHealthAuthorizationStatus, getHealthAvailability, readHealthFallback, requestHealthAuthorization, retryPendingHealthkitExports, writeWorkoutToHealthKit } from "../lib/native/healthkit";
 import { loadPendingWrites, savePendingWrites } from "../lib/storage/pendingWrites";
@@ -11,8 +12,9 @@ import { clearSession, loadSession, saveSession } from "../lib/storage/session";
 import { loadSettings, saveSettings } from "../lib/storage/settings";
 import { todayKey } from "../lib/time";
 import { sanitizeActivity } from "../lib/utils/sanitize";
-import type { ActivitySummary, AppView, BodySnapshot, LocalSettings, PendingWrite, SessionState } from "../types";
+import type { ActivitySummary, AppView, BodySnapshot, LocalSettings, PendingWrite, SessionState, SportType } from "../types";
 import { useRecordingMachine } from "../features/recording/useRecordingMachine";
+import { successHaptic } from "../lib/native/haptics";
 import { useAppStore } from "./store";
 
 type IntegrationState = "idle" | "syncing" | "error";
@@ -24,13 +26,12 @@ function isOlderThan(value: string | null, hours: number): boolean {
   return Date.now() - timestamp > hours * 60 * 60 * 1000;
 }
 
-const CURRENT_COACH_PROMPT_VERSION = "alpaca-coach-v3";
+const CURRENT_COACH_PROMPT_VERSION = "alpaca-coach-v4";
 const OPEN_SESSION: SessionState = {
   token: "alpaca-open",
   expiresAt: "2099-01-01T00:00:00.000Z",
 };
 const ActivityDetailSheet = lazy(() => import("../features/activity-detail/ActivityDetailSheet").then((mod) => ({ default: mod.ActivityDetailSheet })));
-const CoachScreen = lazy(() => import("../features/coach/CoachScreen").then((mod) => ({ default: mod.CoachScreen })));
 const HistoryScreen = lazy(() => import("../features/history/HistoryScreen").then((mod) => ({ default: mod.HistoryScreen })));
 const RecordingMapSheet = lazy(() => import("../features/recording/RecordingMapSheet").then((mod) => ({ default: mod.RecordingMapSheet })));
 const SettingsScreen = lazy(() => import("../features/settings/SettingsScreen").then((mod) => ({ default: mod.SettingsScreen })));
@@ -68,6 +69,8 @@ export function App() {
   const [healthAvailable, setHealthAvailable] = useState(false);
   const [settingsReturnView, setSettingsReturnView] = useState<Exclude<AppView, "settings">>("home");
   const [integrationState, setIntegrationState] = useState<{ strava: IntegrationState; oura: IntegrationState }>({ strava: "idle", oura: "idle" });
+  const [pendingSport, setPendingSport] = useState<SportType | null>(null);
+  const [savedFlash, setSavedFlash] = useState(false);
   const healthRetryRanRef = useRef(false);
   const healthStatusSyncRef = useRef(false);
   const healthAuthPromptedRef = useRef(false);
@@ -165,6 +168,26 @@ export function App() {
     void saveSession(OPEN_SESSION);
   }, [hydrated, session, setSession]);
 
+  // Handle Strava OAuth callback -- read tokens from URL fragment after redirect.
+  useEffect(() => {
+    if (!hydrated) return;
+    const hash = window.location.hash;
+    if (!hash.includes("strava_connected=1")) return;
+    const params = new URLSearchParams(hash.slice(1));
+    const refreshToken = params.get("strava_refresh_token");
+    if (!refreshToken) return;
+
+    // Clear the fragment so we don't re-process on next render.
+    window.history.replaceState(null, "", window.location.pathname);
+
+    void (async () => {
+      await persistSettingsPatch({ stravaRefreshToken: refreshToken });
+      // Trigger import with the new token (clientId/secret come from server env).
+      stravaSyncRef.current = false;
+      void syncStravaHistory();
+    })();
+  }, [hydrated]);
+
   const bootstrapQuery = useQuery({
     queryKey: ["bootstrap", session?.token],
     queryFn: fetchBootstrap,
@@ -203,6 +226,8 @@ export function App() {
   const queueWrite = async (write: PendingWrite) => {
     await commitPendingWrites((current) => [write, ...current.filter((item) => item.id !== write.id)]);
     setPendingSyncNonce((value) => value + 1);
+    successHaptic();
+    setSavedFlash(true);
     setView("home");
   };
 
@@ -213,13 +238,13 @@ export function App() {
   });
 
   async function syncStravaHistory() {
-    if (!settings.stravaClientId || !settings.stravaClientSecret || !settings.stravaRefreshToken || stravaSyncRef.current) return;
+    if (!settings.stravaRefreshToken || stravaSyncRef.current) return;
     stravaSyncRef.current = true;
     setIntegrationState((current) => ({ ...current, strava: "syncing" }));
     try {
       await importStrava({
-        clientId: settings.stravaClientId,
-        clientSecret: settings.stravaClientSecret,
+        clientId: settings.stravaClientId || undefined,
+        clientSecret: settings.stravaClientSecret || undefined,
         refreshToken: settings.stravaRefreshToken,
       });
       await persistSettingsPatch({
@@ -389,12 +414,12 @@ export function App() {
 
   useEffect(() => {
     if (!session || !hydrated) return;
-    const hasStravaCredentials = Boolean(settings.stravaClientId && settings.stravaClientSecret && settings.stravaRefreshToken);
+    const hasStravaCredentials = Boolean(settings.stravaRefreshToken);
     if (!hasStravaCredentials) return;
     const hasImportedHistory = allActivities.some((activity) => activity.source === "strava");
     const shouldSync = !hasImportedHistory && !settings.lastStravaImportAt;
     if (shouldSync) {
-      const autoKey = `${settings.stravaClientId}:${settings.stravaRefreshToken}`;
+      const autoKey = `${settings.stravaClientId || "oauth"}:${settings.stravaRefreshToken}`;
       if (stravaAutoKeyRef.current === autoKey) return;
       stravaAutoKeyRef.current = autoKey;
       void syncStravaHistory();
@@ -498,7 +523,7 @@ export function App() {
       await Promise.all([
         bootstrapQuery.refetch(),
         refreshBody(),
-        settings.stravaClientId && settings.stravaClientSecret && settings.stravaRefreshToken ? syncStravaHistory() : Promise.resolve(),
+        settings.stravaRefreshToken ? syncStravaHistory() : Promise.resolve(),
       ]);
       await bootstrapQuery.refetch();
     } finally {
@@ -528,13 +553,6 @@ export function App() {
   }
 
   const commentTarget = useMemo(() => {
-    if (view === "coach") {
-      return (
-        allActivities.find(
-          (activity) => activity.comment_status !== "ready" || activity.comment_prompt_version !== CURRENT_COACH_PROMPT_VERSION,
-        ) ?? null
-      );
-    }
     const detailNeedsRefresh =
       detailSummary?.comment_prompt_version !== CURRENT_COACH_PROMPT_VERSION ||
       (detailQuery.data?.coachComment?.prompt_version && detailQuery.data.coachComment.prompt_version !== CURRENT_COACH_PROMPT_VERSION);
@@ -643,8 +661,18 @@ export function App() {
 
   const handleSplashDone = useCallback(() => setShowSplash(false), []);
 
+  useEffect(() => {
+    if (!savedFlash) return;
+    const timer = window.setTimeout(() => setSavedFlash(false), 1800);
+    return () => window.clearTimeout(timer);
+  }, [savedFlash]);
+
   if (!hydrated) {
-    return <div className="andes-shell flex items-center justify-center">Loading Alpaca...</div>;
+    return (
+      <div className="andes-shell flex items-center justify-center">
+        <div className="andes-breathe"><AlpacaIcon size={48} color="rgba(90,230,222,0.3)" /></div>
+      </div>
+    );
   }
 
   if (showSplash) {
@@ -652,147 +680,132 @@ export function App() {
   }
 
   if (!session) {
-    return <div className="andes-shell flex items-center justify-center">Opening Alpaca...</div>;
+    return (
+      <div className="andes-shell flex items-center justify-center">
+        <div className="andes-breathe"><AlpacaIcon size={48} color="rgba(90,230,222,0.3)" /></div>
+      </div>
+    );
   }
 
   return (
+    <>
     <div className="andes-shell">
-      {!recording.draft ? (
-        <div className="mx-auto max-w-[28rem] px-5 pb-10">
+
+      {!recording.draft && !pendingSport ? (
+        <>
           {view === "home" ? (
-          <div>
             <HomeScreen
-              onRecord={() => {
-                void recording.start(quickStartSport);
-              }}
+              onRecord={() => setPendingSport(quickStartSport)}
               onOpenRecords={() => setView("records")}
               onOpenSleep={() => setView("sleep")}
-              onOpenCoach={() => setView("coach")}
             />
-          </div>
           ) : null}
 
-          {view === "records" ? (
-          <div>
-            <div className="mb-4 flex items-center justify-between">
-              <button onClick={() => setView("home")}>
-                <HistoryIcon size={32} />
-              </button>
-              <button onClick={() => openSettings("records")}>
-                <AlpacaIcon size={20} />
-              </button>
+          {view !== "home" ? (
+            <div className="relative z-[1] mx-auto max-w-[28rem] px-5 pb-6">
+              {view === "records" ? (
+              <div>
+                <div className="mb-4">
+                  <HistoryIcon size={32} />
+                </div>
+                <div className="mb-4 px-0"><TrailDivider variant="strata" /></div>
+                <Suspense fallback={<LazyScreenFallback />}>
+                  <HistoryScreen
+                    activities={allActivities}
+                    body={todayBody}
+                    currentPromptVersion={CURRENT_COACH_PROMPT_VERSION}
+                    refreshing={refreshing || bootstrapQuery.isFetching}
+                    onRefresh={refreshEverything}
+                    onOpenDetail={openDetail}
+                    onOpenSettings={() => openSettings("records")}
+                  />
+                </Suspense>
+              </div>
+              ) : null}
+
+              {view === "sleep" ? (
+              <div>
+                <div className="mb-4">
+                  <SleepIcon size={32} />
+                </div>
+                <div className="mb-4 px-0"><TrailDivider variant="wave" /></div>
+                <Suspense fallback={<LazyScreenFallback />}>
+                  <SleepScreen
+                    body={todayBody}
+                    activities={allActivities}
+                    refreshing={refreshing || bootstrapQuery.isFetching}
+                    syncing={integrationState.oura === "syncing"}
+                    onRefresh={refreshEverything}
+                    onOpenSettings={() => openSettings("sleep")}
+                  />
+                </Suspense>
+              </div>
+              ) : null}
+
+
+              {view === "settings" ? (
+              <div>
+                <div className="mb-4">
+                  <SettingsIcon size={24} />
+                </div>
+                <div className="mb-4 px-0"><TrailDivider variant="drift" /></div>
+                <Suspense fallback={<LazyScreenFallback />}>
+                  <SettingsScreen
+                    settings={settings}
+                    body={todayBody}
+                    mapboxInherited={Boolean(!settings.mapboxToken && import.meta.env.VITE_MAPBOX_TOKEN)}
+                    healthAvailable={healthAvailable}
+                    stravaConnectUrl={stravaConnectUrl()}
+                    stravaConnected={Boolean(settings.stravaRefreshToken)}
+                    stravaSyncing={integrationState.strava === "syncing"}
+                    onSave={async (nextSettings) => {
+                      setSettings(nextSettings);
+                      await saveSettings(nextSettings);
+                    }}
+                    onScanDevices={scanHeartRateDevices}
+                    onTestDevice={testHeartRateDevice}
+                    onRefreshOura={refreshOuraWithHistory}
+                    onImportStrava={syncStravaHistory}
+                    onRepair={async () => {
+                      await repairLibrary();
+                      await bootstrapQuery.refetch();
+                    }}
+                    onBackfill={async () => {
+                      let remaining = Math.max(remainingCoachCount, 1);
+                      let stalledPasses = 0;
+
+                      while (remaining > 0 && stalledPasses < 2) {
+                        const result = await backfillComments(Math.min(20, remaining));
+                        remaining = result.remaining;
+                        await bootstrapQuery.refetch();
+                        stalledPasses = result.processed + result.reused === 0 ? stalledPasses + 1 : 0;
+                      }
+                    }}
+                    onHealthAuth={async () => {
+                      await connectHealth();
+                    }}
+                    onLogout={async () => {
+                      await logout().catch(() => undefined);
+                      await clearSession();
+                      setSession(null);
+                    }}
+                  />
+                </Suspense>
+              </div>
+              ) : null}
+
+              <div className="pt-4">
+                <button
+                  onClick={() => setView("home")}
+                  className="transition-opacity active:opacity-50"
+                  aria-label="Home"
+                >
+                  <CoachIcon size={36} color="rgba(90,230,222,0.5)" />
+                </button>
+              </div>
             </div>
-            <div className="mb-4 px-0"><TrailDivider /></div>
-            <Suspense fallback={<LazyScreenFallback />}>
-              <HistoryScreen
-                activities={allActivities}
-                currentPromptVersion={CURRENT_COACH_PROMPT_VERSION}
-                refreshing={refreshing || bootstrapQuery.isFetching}
-                onRefresh={refreshEverything}
-                onOpenDetail={openDetail}
-                onOpenSettings={() => openSettings("records")}
-              />
-            </Suspense>
-          </div>
           ) : null}
-
-          {view === "sleep" ? (
-          <div>
-            <div className="mb-4 flex items-center justify-between">
-              <button onClick={() => setView("home")}>
-                <SleepIcon size={32} />
-              </button>
-              <button onClick={() => openSettings("sleep")}>
-                <AlpacaIcon size={20} />
-              </button>
-            </div>
-            <div className="mb-4 px-0"><TrailDivider /></div>
-            <Suspense fallback={<LazyScreenFallback />}>
-              <SleepScreen
-                body={todayBody}
-                refreshing={refreshing || bootstrapQuery.isFetching}
-                syncing={integrationState.oura === "syncing"}
-                onRefresh={refreshEverything}
-                onOpenSettings={() => openSettings("sleep")}
-              />
-            </Suspense>
-          </div>
-          ) : null}
-
-          {view === "coach" ? (
-          <div>
-            <div className="mb-4 flex items-center justify-between">
-              <button onClick={() => setView("home")}>
-                <CoachIcon size={32} />
-              </button>
-              <button onClick={() => openSettings("coach")}>
-                <AlpacaIcon size={20} />
-              </button>
-            </div>
-            <div className="mb-4 px-0"><TrailDivider /></div>
-            <Suspense fallback={<LazyScreenFallback />}>
-              <CoachScreen
-                activities={allActivities}
-                currentPromptVersion={CURRENT_COACH_PROMPT_VERSION}
-                refreshing={refreshing || bootstrapQuery.isFetching}
-                onRefresh={refreshEverything}
-                onOpenDetail={openDetail}
-              />
-            </Suspense>
-          </div>
-          ) : null}
-
-          {view === "settings" ? (
-          <div>
-            <div className="mb-4 flex items-center justify-between">
-              <SettingsIcon size={24} />
-              <button onClick={() => setView(settingsReturnView)}>
-                <AlpacaIcon size={20} />
-              </button>
-            </div>
-            <div className="mb-4 px-0"><TrailDivider /></div>
-            <Suspense fallback={<LazyScreenFallback />}>
-              <SettingsScreen
-                settings={settings}
-                body={todayBody}
-                mapboxInherited={Boolean(!settings.mapboxToken && import.meta.env.VITE_MAPBOX_TOKEN)}
-                healthAvailable={healthAvailable}
-                onSave={async (nextSettings) => {
-                  setSettings(nextSettings);
-                  await saveSettings(nextSettings);
-                }}
-                onScanDevices={scanHeartRateDevices}
-                onTestDevice={testHeartRateDevice}
-                onRefreshOura={refreshOuraWithHistory}
-                onImportStrava={syncStravaHistory}
-                onRepair={async () => {
-                  await repairLibrary();
-                  await bootstrapQuery.refetch();
-                }}
-                onBackfill={async () => {
-                  let remaining = Math.max(remainingCoachCount, 1);
-                  let stalledPasses = 0;
-
-                  while (remaining > 0 && stalledPasses < 2) {
-                    const result = await backfillComments(Math.min(20, remaining));
-                    remaining = result.remaining;
-                    await bootstrapQuery.refetch();
-                    stalledPasses = result.processed + result.reused === 0 ? stalledPasses + 1 : 0;
-                  }
-                }}
-                onHealthAuth={async () => {
-                  await connectHealth();
-                }}
-                onLogout={async () => {
-                  await logout().catch(() => undefined);
-                  await clearSession();
-                  setSession(null);
-                }}
-              />
-            </Suspense>
-          </div>
-          ) : null}
-        </div>
+        </>
       ) : null}
 
       {detailSummary ? (
@@ -802,6 +815,7 @@ export function App() {
             detail={detailQuery.data ?? null}
             mapboxToken={effectiveMapboxToken}
             onClose={closeDetail}
+            onGoHome={() => { closeDetail(); setView("home"); }}
             onGenerateComment={async () => {
               await commentActivity(detailSummary.id, true, settings.ouraToken || undefined);
               await Promise.all([detailQuery.refetch(), bootstrapQuery.refetch()]);
@@ -816,11 +830,20 @@ export function App() {
         </Suspense>
       ) : null}
 
-      {recording.draft ? (
+      {recording.draft || pendingSport ? (
         <RecordingScreen
           draft={recording.draft}
           elapsedSeconds={recording.currentElapsed}
           mapboxToken={effectiveMapboxToken}
+          gpsCallbackCount={recording.gpsCallbackCount}
+          nativeStatus={recording.nativeStatus}
+          onStart={() => {
+            if (pendingSport) {
+              void recording.start(pendingSport);
+              setPendingSport(null);
+            }
+          }}
+          onCancel={() => setPendingSport(null)}
           onPause={recording.pause}
           onResume={recording.resume}
           onStop={() => void recording.stop()}
@@ -841,6 +864,26 @@ export function App() {
           />
         </Suspense>
       ) : null}
+
     </div>
+
+    {savedFlash ? (
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 9000,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "var(--color-bg)",
+          animation: "andes-saved-flash 1.8s ease-out forwards",
+        }}
+      >
+        <CheckIcon size={48} color="#5ae6de" />
+      </div>
+    ) : null}
+
+    </>
   );
 }
