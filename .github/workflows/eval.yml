@@ -1,0 +1,30 @@
+name: Eval
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  run-eval:
+    runs-on: ubuntu-latest
+    env:
+      PHOENIX_API_KEY: ${{ secrets.PHOENIX_API_KEY }}
+      PHOENIX_COLLECTOR_ENDPOINT: https://app.phoenix.arize.com/s/manintheandes
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+    - name: Install dependencies
+      run: pip install arize-phoenix openinference-instrumentation
+    - name: Run evals
+      run: |
+        if [ -f ./evals/run_eval.py ]; then
+          python ./evals/run_eval.py
+        else
+          echo "No eval script found at ./evals/run_eval.py — skipping"
+        fi
